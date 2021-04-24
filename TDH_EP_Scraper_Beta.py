@@ -1,3 +1,10 @@
+"""
+
+A package built for scraping Elite Prospects
+
+This package is built for personal use. If you are interested in professional use, look into the EliteProspects API.
+"""
+
 import numpy as np
 import pandas as pd
 from bs4  import BeautifulSoup
@@ -9,9 +16,13 @@ warnings.filterwarnings("ignore")
 import sys
 from requests import ConnectionError, ReadTimeout, ConnectTimeout, HTTPError, Timeout
 
-class Patrick(Exception): pass
-
 def tableDataText(table):
+
+    """
+    A function that is built strictly for the back end and should not be run by the user.
+    Function built by Marcus Sjölin
+    """
+
     rows = []
     trs = table.find_all('tr')
 
@@ -28,8 +39,7 @@ def tableDataText(table):
 
 def getskaters(league, year):  
     """
-    Get all players for specific year and league; returns dataframe
-    League input in format '2018-19'
+    A function that is built strictly for the back end and should not be run by the user.
     """
    
     url = 'https://www.eliteprospects.com/league/' + league + '/stats/' + year + '?page='
@@ -75,7 +85,7 @@ def getskaters(league, year):
                 df_players = tableDataText(player_table)
                 
             except AttributeError:
-                print("BREAK: TABLE NONE ERROR: " + str(requests.get(url+str(i)), timeout = 500) + " On League: " + league + " In Year: " + year)
+                print("BREAK: TABLE NONE ERROR: " + str(requests.get(url+str(i), timeout = 500)) + " On League: " + league + " In Year: " + year)
                 break
                 
             if len(df_players)>0:
@@ -137,9 +147,12 @@ def getskaters(league, year):
 
             return df_players
         
-        else: print("LENGTH 0 ERROR: " + str(requests.get(url+str(1)), timeout = 500) + " On League: " + league + " In Year: " + year)
+        else: print("LENGTH 0 ERROR: " + str(requests.get(url+str(1), timeout = 500)) + " On League: " + league + " In Year: " + year)
             
 def getgoalies(league, year):
+    """
+    A function that is built strictly for the back end and should not be run by the user.
+    """
 
     url = 'https://www.eliteprospects.com/league/' + league + '/stats/' + year + '?page-goalie='
     # print('Collects data from ' + 'https://www.eliteprospects.com/league/' + league + '/stats/' + year)
@@ -184,7 +197,7 @@ def getgoalies(league, year):
             try:
                 df_players = tableDataText(player_table)
             except AttributeError:
-                print("BREAK: TABLE NONE ERROR: " + str(requests.get(url+str(i)), timeout = 500) + " On League: " + league + " In Year: " + year)
+                print("BREAK: TABLE NONE ERROR: " + str(requests.get(url+str(i), timeout = 500)) + " On League: " + league + " In Year: " + year)
                 break
                 
             if len(df_players)>0:
@@ -236,6 +249,9 @@ def getgoalies(league, year):
         else: print("LENGTH 0 ERROR: " + str(requests.get(url+str(1), timeout = 500)) + " On League: " + league + " In Year: " + year)  
     
 def get_info(link):
+    """
+    A function that is built strictly for the back end and should not be run by the user.
+    """
     
     page = requests.get(link, timeout = 500)
     soup = BeautifulSoup(page.content, "html.parser")
@@ -336,6 +352,9 @@ def get_info(link):
     return(player, dob, height, weight, birthplace, nation, shoots, draft, link)
     
 def get_player_information(dataframe):
+    '''
+    Takes a data frame from the get_players or get_goalies function and obtains biographcal information for all players in said dataframe, then returns it as a dataframe.
+    '''
 
     myplayer = []
     mydob = []
@@ -369,7 +388,7 @@ def get_player_information(dataframe):
             HTTPError,
             ReadTimeout,
             ConnectTimeout) as errormessage:
-            print("Yo' ass is disconnected! Here's the error message:")
+            print("You've been disconnected. Here's the error message:")
             print(errormessage)
             print("Luckily, everything you've scraped up to this point will still be safe.")
             break
@@ -393,6 +412,9 @@ def get_player_information(dataframe):
 
         
 def get_league_skater_boxcars(league, seasons):
+    """
+    A function that is built strictly for the back end and should not be run by the user.
+    """
 
     if len(set(seasons))==1:
         scraped_season_list = str(seasons)
@@ -437,6 +459,9 @@ def get_league_skater_boxcars(league, seasons):
         return(output)
     
 def get_league_goalie_boxcars(league, seasons):
+    """
+    A function that is built strictly for the back end and should not be run by the user.
+    """
 
     if len(set(seasons))==1:
         scraped_season_list = str(seasons)
@@ -481,6 +506,9 @@ def get_league_goalie_boxcars(league, seasons):
         return(output)
 
 def get_goalies(leagues, seasons):
+    '''
+    Obtains goalie data for at least one season and at least one league. Returns a dataframe.
+    '''
     
     if (len(seasons)==1 or type(seasons)==str):
         season_string = str(seasons)
@@ -562,7 +590,7 @@ def get_goalies(leagues, seasons):
             except KeyboardInterrupt:
                 print("You interrupted this one manually. The output here will be every player you've scraped so far. Good bye!")
                 break
-            except Patrick:
+            except ConnectionError:
                 print("You were disconnected! The output here will be every player you've scraped so far. Here's your error message:")
                 print(error)
                 break
@@ -597,7 +625,7 @@ def get_goalies(leagues, seasons):
             except KeyboardInterrupt:
                 print("You interrupted this one manually. The output here will be every player you've scraped so far. Good bye!")
                 break
-            except Patrick:
+            except ConnectionError:
                 print("You were disconnected! The output here will be every player you've scraped so far. Here's your error message:")
                 print(error)
                 break
@@ -627,6 +655,10 @@ def get_goalies(leagues, seasons):
     
     
 def get_skaters(leagues, seasons):
+
+    '''
+    Obtains skater data for at least one season and at least one league. Returns a dataframe.
+    '''
     
     if (len(seasons)==1 or type(seasons)==str):
         season_string = str(seasons)
@@ -704,11 +736,11 @@ def get_skaters(leagues, seasons):
                 if hidden_patrick == 4:
                     raise KeyboardInterrupt
                 if hidden_patrick == 5:
-                    raise Patrick
+                    raise ConnectionError
             except KeyboardInterrupt:
                 print("You interrupted this one manually. The output here will be every player you've scraped so far. Good bye!")
                 break
-            except Patrick:
+            except ConnectionError:
                 print("You were disconnected! The output here will be every player you've scraped so far. Here's your error message:")
                 print(error)
                 break
@@ -743,7 +775,7 @@ def get_skaters(leagues, seasons):
             except KeyboardInterrupt:
                 print("You interrupted this one manually. The output here will be every player you've scraped so far. Good bye!")
                 break
-            except Patrick:
+            except ConnectionError:
                 print("You were disconnected! The output here will be every player you've scraped so far. Here's your error message:")
                 print(error)
                 break
@@ -772,41 +804,17 @@ def get_skaters(leagues, seasons):
         print("There was an issue with the request you made. Please enter a single league and season as a string, or multiple leagues as either a list or tuple.")
 
 def add_player_information(dataframe):
+    '''
+    Takes a data frame from the get_players or get_goalies function and obtains biographcal information for all players in said dataframe, then returns it as a dataframe that adds to the other data you've already scraped..
+    '''
     with_player_info = get_player_information(dataframe)
     doubledup = dataframe.merge(with_player_info.drop(columns = ['player']), on = 'link', how = 'inner')
     return doubledup
 
 ### EXAMPLE ONE: GET ALL SKATERS FROM THE MHL IN 2020-2021 ###
 
-mhl2021 = get_skaters("mhl", "2020-2021")
+#mhl2021 = get_skaters("mhl", "2020-2021")
+print("Welcome to the TopDownHockey EliteProspects Scraper, built by Patrick Bacon.")
+print("This scraper is built strictly for personal use. For commercial or professional use, please look into the EliteProspects API.")
+print("If you enjoy the scraper and would like to support my work, feel free to follow me on Twitter @TopDownHockey. Have fun!")
 
-### NOW SORT THESE SKATERS BY POINTS PER GAME ("PPG") AND TAKE A LOOK AT THE TOP 20 ###
-
-mhl2021.sort_values(by = 'ppg', ascending = False).head(20)
-
-### EXAMPLE 2: GET DATA FOR MULTIPLE LEAGUES AND SEASONS ###
-
-leagues = ("mhl", "khl")
-
-seasons = ("2019-2020", "2020-2021")
-
-mhl_khl_1921 = get_skaters(leagues, seasons)
-
-### DISPLAY DATA FROM ONLY ONE OF THOSE LEAGUES USING LOC ###
-
-mhl_khl_1921.loc[mhl_khl_1921.league=="khl"]
-
-### EXAMPLE 3: ADD PLAYER INFORMATION DATA FOR THE TOP-20 MHL SCORERS WE LOOKED AT BEFORE, THEN TAKE A LOOK AT IT. ###
-
-mhl_top_20 = mhl2021.sort_values(by = 'ppg', ascending = False).head(20)
-
-mhl_top_20_with_info = add_player_information(mhl_top_20)
-
-mhl_top_20_with_info
-
-### EXAMPLE 4: LOOK AT SOME PRO GOALIES PLAYING IN AMERICA OVER THE PAST 3 YEARS ###
-
-usaproleagues = ("ahl", "nhl")
-last3years = ("2017-2018", "2018-2019", "2019-2020")
-
-usaprogoalies = get_goalies(usaproleagues, last3years)
