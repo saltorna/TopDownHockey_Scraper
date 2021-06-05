@@ -1,11 +1,16 @@
 # TopDownHockey EliteProspects Scraper
 
-## By Patrick Bacon, made possible by the work of Marcus Sjölin.
+## By Patrick Bacon, made possible by the work of Marcus Sjölin and Harry Shomer.
+
 ---
 
-This is a package built for scraping Elite Prospects, an extremely valuable website which makes hockey data for thousands of leagues available to the public. 
+This is a package built for scraping two data sources:
 
-This package is strictly built for end users who wish to scrape data for personal use. If you are interested in using this data for professional purposes, I recommend you look into the <a href="https://www.eliteprospects.com/api" >Elite Prospects API</a>.
+1. The NHL's Play-by-Play Reports, which come in the form of HTML/API reports from the NHL and XML reports from ESPN.
+
+2. Elite Prospects, an extremely valuable website which makes hockey data for thousands of leagues available to the public. 
+
+This package is strictly built for end users who wish to scrape data for personal use. If you are interested in using Elite Prospects data for professional purposes, I recommend you look into the <a href="https://www.eliteprospects.com/api" >Elite Prospects API</a>.
 
 While using the scraper, please be mindful of EliteProspects servers.
 
@@ -17,11 +22,55 @@ You can install the package by entering the following command in terminal:
 
 <code>pip install TopDownHockey_Scraper</code>
 
-Then import the module using this function:
+If you're interested in using the NHL Play-By-Play scraper, import that module using this function in Python:
+
+<code>import TopDownHockey_Scraper.TopDownHockey_NHL_Scraper as tdhnhlscrape</code>
+
+If you're interested in using the Elite Prospects scraper, import that module using this function in Python:
 
 <code>import TopDownHockey_Scraper.TopDownHockey_EliteProspects_Scraper as tdhepscrape</code>
 
-# User-End Functions
+# User-End Functions (NHL Scraper)
+
+---
+
+### scrape_schedule(start_date, end_date)
+
+Returns the NHL's schedule from the API for all games played between a start date and an end date.
+
+<ul>
+    <li>start_date: The first date in the list of game dates that you would like to scrape. Enter as a string in "YYYY-MM-DD" format.</li>
+    <li>end_date: The last date in the list of game dates that you would like to scrape. Enter as a string in "YYYY-MM-DD" format.</li>
+    </ul>
+    
+Example:
+
+<code>tdhnhlscrape.scrape_schedule("2021-01-01", "2021-05-20")</code>
+
+---
+
+### full_scrape(game_id_list, shift = True)
+
+Returns a dataframe containing play-by-play data for a list of game ids.
+
+<ul>
+    <li>game_id_list: A list of NHL game ids.</li>
+    <li>shift: Shift the coordinate source to ESPN. By default, the program will attempt to scrape the NHL's API for location coordinates first.</li>
+    </ul>
+    
+Example: 
+
+<code>tdhnhlscrape.full_scrape([2020020014, 2020020015, 2020020016])</code>
+
+Combine the two functions and scrape the entire 2021 regular season:
+
+- <code>schedule_2021 = tdhnhlscrape.scrape_schedule("2021-01-01", "2021-05-20")</code>
+- <code>schedule_2021 = schedule_2021[schedule_2021.type=='R']</code>
+- <code>game_list_2021 = list(schedule_2021.ID)</code>
+- <code>pbp_2021 = tdhnhlscrape.full_scrape(game_list_2021)</code>
+ 
+
+# User-End Functions (Elite Prospects Scraper)
 
 ---
 
@@ -89,7 +138,7 @@ Say you obtain skater data for the KHL in 2020-2021 and store that as a datafram
 
 <code>tdhepscrape.add_player_information(output)</code>
 
-# Comments Questions and Concerns.
+# Comments, Questions, and Concerns.
 
 ---
 
