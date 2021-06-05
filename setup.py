@@ -9,16 +9,16 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="TopDownHockey_Scraper", # Replace with your own username
-    version="1.0.2",
+    version="2.0.1",
     author="Patrick Bacon",
     author_email="patrick.s.bacon@gmail.com",
-    description="A small example package",
+    description="The TopDownHockey Scraper",
     long_description=long_description,
     license = 'MIT',
     long_description_content_type="text/markdown",
-    url="https://github.com/TopDownHockey/TopDownHockey-EliteProspects-Scraper",
+    url="https://github.com/TopDownHockey/TopDownHockey_Scraper",
     project_urls={
-        "Bug Tracker": "https://github.com/TopDownHockey/TopDownHockey-EliteProspects-Scraper/issues",
+        "Bug Tracker": "https://github.com/TopDownHockey/TopDownHockey_Scraper/issues",
     },
     classifiers=[
         "Programming Language :: Python :: 3",
@@ -33,7 +33,11 @@ setup(
     'pandas',
     'bs4',
     'datetime',
-    'requests'
+    'seaborn',
+    'matplotlib',
+    'xmltodict',
+    'lxml',
+    'natsort'
 ]
 )
 
