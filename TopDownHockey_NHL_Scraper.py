@@ -23,6 +23,64 @@ from requests.exceptions import ChunkedEncodingError
 
 ewc = ['SHOT', 'HIT', 'BLOCK', 'MISS', 'GIVE', 'TAKE', 'GOAL']
 
+def scrape_standings(season):
+    """
+    Takes an integer in "20202021" form and scrapes standings for that season.
+    """
+    url = 'https://statsapi.web.nhl.com/api/v1/standings?season=' + str(season)
+    page = requests.get(url, timeout = 500)
+    loaddict = json.loads(page.content)
+    record_df = pd.DataFrame(loaddict['records'])
+    team = []
+    wins = []
+    losses = []
+    otl = []
+    rw = []
+    ga = []
+    gf = []
+    row = []
+    gp = []
+    pts = []
+    divisions = []
+    conferences = []
+
+    for i in range(0, len(record_df['teamRecords'])):
+        div = (record_df['division'].iloc[i]['name'])
+        conf = (record_df['conference'].iloc[i]['name'])
+        for x in range(0, len((record_df['teamRecords'].iloc[i]))):
+            divisions.append(div)
+            conferences.append(conf)
+            team.append(record_df['teamRecords'].iloc[i][x]['team']['name'])
+            wins.append(record_df['teamRecords'].iloc[i][x]['leagueRecord']['wins'])
+            losses.append(record_df['teamRecords'].iloc[i][x]['leagueRecord']['losses'])
+            otl.append(record_df['teamRecords'].iloc[i][x]['leagueRecord']['ot'])
+            gf.append(record_df['teamRecords'].iloc[i][x]['goalsScored'])
+            ga.append(record_df['teamRecords'].iloc[i][x]['goalsAgainst'])
+            if season>20092010:
+                row.append(record_df['teamRecords'].iloc[i][x]['row'])
+            gp.append(record_df['teamRecords'].iloc[i][x]['gamesPlayed'])
+            pts.append(record_df['teamRecords'].iloc[i][x]['points'])
+            if season>20192020:
+                rw.append(record_df['teamRecords'].iloc[i][x]['regulationWins'])
+                
+    if season < 20092010:
+        stand = pd.DataFrame().assign(Team = team, Division = divisions, Conference = conferences,
+                                      GP = gp, W = wins, L = losses, OTL = otl, PTS = pts,  GF = gf, GA = ga)
+        stand = stand.assign(GD = stand.GF - stand.GA).sort_values(by = ['PTS', 'GD'], ascending = False)
+        return stand.assign(Season = season).loc[:, ['Season', 'Team', 'Division', 'Conference', 'GP', 'W', 'L', 'OTL', 'PTS', 'GF','GA', 'GD']].reset_index(drop = True)
+            
+    if ((season<20202021) & (season>20092010)):
+        stand = pd.DataFrame().assign(Team = team, Division = divisions, Conference = conferences,
+                                      GP = gp, W = wins, L = losses, OTL = otl, PTS = pts,  GF = gf, GA = ga, ROW = row)
+        stand = stand.assign(GD = stand.GF - stand.GA).sort_values(by = ['PTS', 'ROW', 'GD'], ascending = False)
+        return stand.assign(Season = season).loc[:, ['Season', 'Team', 'Division', 'Conference', 'GP', 'W', 'L', 'OTL', 'PTS', 'GF','GA', 'ROW', 'GD']].reset_index(drop = True)
+    
+    else:
+        stand = pd.DataFrame().assign(Team = team, Division = divisions, Conference = conferences, 
+                                      GP = gp, W = wins, L = losses, OTL = otl, PTS = pts,  GF = gf, GA = ga, RW = rw, ROW = row)
+        stand = stand.assign(GD = stand.GF - stand.GA).sort_values(by = ['PTS', 'RW', 'ROW', 'GD'], ascending = False)
+        return stand.assign(Season = season).loc[:, ['Season', 'Team', 'Division', 'Conference', 'GP', 'W', 'L', 'OTL', 'PTS', 'GF','GA', 'RW', 'ROW', 'GD']].reset_index(drop = True)
+
 def scrape_schedule(start_date, end_date):
     
     """
@@ -214,14 +272,16 @@ def scrape_html_roster(season, game_id):
                                 roster_df.Name.str.replace('CHRISTOPHER ', 'CHRIS '),
                                 roster_df['Name'])
     
+    # List of names and fixed from Evolving Hockey Scraper.
+    
     roster_df = roster_df.assign(Name = 
     (np.where(roster_df['Name']== "ANDREI KASTSITSYN" , "ANDREI KOSTITSYN",
-    (np.where(roster_df['Name']== "AJ GREER" , "A.J.  GREER",
+    (np.where(roster_df['Name']== "AJ GREER" , "A.J. GREER",
     (np.where(roster_df['Name']== "ANDREW GREENE" , "ANDY GREENE",
     (np.where(roster_df['Name']== "ANDREW WOZNIEWSKI" , "ANDY WOZNIEWSKI", 
     (np.where(roster_df['Name']== "ANTHONY DEANGELO" , "TONY DEANGELO",
     (np.where(roster_df['Name']== "BATES (JON) BATTAGLIA" , "BATES BATTAGLIA",
-    (np.where(roster_df['Name'].isin(["BJ CROMBEEN", "B.J. CROMBEEN", "BRANDON CROMBEEN", "B J CROMBEEN"]) , "B.J. CROMBEEN", 
+    (np.where(roster_df['Name'].isin(["BJ CROMBEEN", "B.J CROMBEEN", "BRANDON CROMBEEN", "B J CROMBEEN"]) , "B.J. CROMBEEN", 
     (np.where(roster_df['Name']== "BRADLEY MILLS" , "BRAD MILLS",
     (np.where(roster_df['Name']== "CAMERON BARKER" , "CAM BARKER", 
     (np.where(roster_df['Name']== "COLIN (JOHN) WHITE" , "COLIN WHITE",
@@ -234,7 +294,7 @@ def scrape_html_roster(season, game_id):
     (np.where(roster_df['Name']== "DANIEL CARCILLO" , "DAN CARCILLO", 
     (np.where(roster_df['Name']== "DAVID JOHNNY ODUYA" , "JOHNNY ODUYA", 
     (np.where(roster_df['Name']== "DAVID BOLLAND" , "DAVE BOLLAND", 
-    (np.where(roster_df['Name']== "DENIS JR  GAUTHIER" , "DENIS GAUTHIER",
+    (np.where(roster_df['Name']== "DENIS JR. GAUTHIER" , "DENIS GAUTHIER",
     (np.where(roster_df['Name']== "DWAYNE KING" , "DJ KING", 
     (np.where(roster_df['Name']== "EDWARD PURCELL" , "TEDDY PURCELL", 
     (np.where(roster_df['Name']== "EMMANUEL FERNANDEZ" , "MANNY FERNANDEZ", 
@@ -279,7 +339,7 @@ def scrape_html_roster(season, game_id):
     (np.where(roster_df['Name']== "MAXIME TALBOT" , "MAX TALBOT", 
     (np.where(roster_df['Name']== "MAXWELL REINHART" , "MAX REINHART",
     (np.where(roster_df['Name']== "MICHAEL BLUNDEN" , "MIKE BLUNDEN",
-    (np.where(roster_df['Name']== "MICHAËL BOURNIVAL" , "MICHAEL BOURNIVAL",
+    (np.where(roster_df['Name'].isin(["MICHAËL BOURNIVAL", "MICHAÃ\x8bL BOURNIVAL"]), "MICHAEL BOURNIVAL",
     (np.where(roster_df['Name']== "MICHAEL CAMMALLERI" , "MIKE CAMMALLERI", 
     (np.where(roster_df['Name']== "MICHAEL FERLAND" , "MICHEAL FERLAND", 
     (np.where(roster_df['Name']== "MICHAEL GRIER" , "MIKE GRIER",
@@ -304,8 +364,8 @@ def scrape_html_roster(season, game_id):
     (np.where(roster_df['Name']== "OLIVIER MAGNAN-GRENIER" , "OLIVIER MAGNAN",
     (np.where(roster_df['Name']== "PAT MAROON" , "PATRICK MAROON", 
     (np.where(roster_df['Name'].isin(["P. J. AXELSSON", "PER JOHAN AXELSSON"]) , "P.J. AXELSSON",
-    (np.where(roster_df['Name'].isin(["PK SUBBAN", "P.K SUBBAN"]) , "P.K.  SUBBAN", 
-    (np.where(roster_df['Name'].isin(["PIERRE PARENTEAU", "PIERRE-ALEX PARENTEAU", "PIERRE-ALEXANDRE PARENTEAU", "PA PARENTEAU", "P.A PARENTEAU", "P-A PARENTEAU"]) , "P A  PARENTEAU", 
+    (np.where(roster_df['Name'].isin(["PK SUBBAN", "P.K SUBBAN"]) , "P.K. SUBBAN", 
+    (np.where(roster_df['Name'].isin(["PIERRE PARENTEAU", "PIERRE-ALEX PARENTEAU", "PIERRE-ALEXANDRE PARENTEAU", "PA PARENTEAU", "P.A PARENTEAU", "P-A PARENTEAU"]) , "P.A. PARENTEAU", 
     (np.where(roster_df['Name']== "PHILIP VARONE" , "PHIL VARONE",
     (np.where(roster_df['Name']== "QUINTIN HUGHES" , "QUINN HUGHES",
     (np.where(roster_df['Name']== "RAYMOND MACIAS" , "RAY MACIAS",
@@ -324,7 +384,7 @@ def scrape_html_roster(season, game_id):
     (np.where(roster_df['Name']== "STAFFAN KRONVALL" , "STAFFAN KRONWALL",
     (np.where(roster_df['Name']== "STEVEN REINPRECHT" , "STEVE REINPRECHT",
     (np.where(roster_df['Name']== "TJ GALIARDI" , "T.J. GALIARDI",
-    (np.where(roster_df['Name']== "TJ HENSICK" , "T.J  HENSICK",
+    (np.where(roster_df['Name']== "TJ HENSICK" , "T.J. HENSICK",
     (np.where(roster_df['Name'].isin(["TJ OSHIE", "T.J OSHIE"]) , "T.J. OSHIE", 
     (np.where(roster_df['Name']== "TOBY ENSTROM" , "TOBIAS ENSTROM", 
     (np.where(roster_df['Name']== "TOMMY SESTITO" , "TOM SESTITO",
@@ -336,16 +396,16 @@ def scrape_html_roster(season, game_id):
     (np.where(roster_df['Name']== "ZACHERY STORTINI" , "ZACK STORTINI",
     (np.where(roster_df['Name']== "MATTHEW MURRAY" , "MATT MURRAY",
     (np.where(roster_df['Name']== "J-SEBASTIEN AUBIN" , "JEAN-SEBASTIEN AUBIN",
-    (np.where(roster_df['Name'].isin(["J.F.  BERUBE", "JEAN-FRANCOIS BERUBE"]) , "J-F BERUBE", 
+    (np.where(roster_df['Name'].isin(["J.F. BERUBE", "JEAN-FRANCOIS BERUBE"]) , "J-F BERUBE", 
     (np.where(roster_df['Name']== "JEFF DROUIN-DESLAURIERS" , "JEFF DESLAURIERS", 
     (np.where(roster_df['Name']== "NICHOLAS BAPTISTE" , "NICK BAPTISTE",
     (np.where(roster_df['Name']== "OLAF KOLZIG" , "OLIE KOLZIG",
     (np.where(roster_df['Name']== "STEPHEN VALIQUETTE" , "STEVE VALIQUETTE",
     (np.where(roster_df['Name']== "THOMAS MCCOLLUM" , "TOM MCCOLLUM",
-    (np.where(roster_df['Name']== "TIMOTHY JR  THOMAS" , "TIM THOMAS",
+    (np.where(roster_df['Name']== "TIMOTHY JR. THOMAS" , "TIM THOMAS",
     (np.where(roster_df['Name']== "TIM GETTINGER" , "TIMOTHY GETTINGER",
     (np.where(roster_df['Name']== "NICHOLAS SHORE" , "NICK SHORE",
-    (np.where(roster_df['Name']== "T.J  TYNAN" , "TJ TYNAN",
+    (np.where(roster_df['Name']== "T.J. TYNAN" , "TJ TYNAN",
     (np.where(roster_df['Name']== "ALEXIS LAFRENI?RE" , "ALEXIS LAFRENIÈRE",
     (np.where(roster_df['Name']== "ALEXIS LAFRENIERE" , "ALEXIS LAFRENIÈRE", 
     (np.where(roster_df['Name']== "ALEXIS LAFRENIÃRE" , "ALEXIS LAFRENIÈRE",
@@ -357,8 +417,16 @@ def scrape_html_roster(season, game_id):
     (np.where(roster_df['Name']== "MATTIAS JANMARK-NYLEN" , "MATTIAS JANMARK",
     (np.where(roster_df['Name']== "JOSH DUNNE" , "JOSHUA DUNNE",roster_df['Name'])))))))))))))))))))))))))))))))))))))))))))
     )))))))))))))))))))))))))))))))))
+    
+    roster_df['Name'] = np.where((roster_df['Name']=="SEBASTIAN AHO") & (roster_df['Pos']=='D'), 'SEBASTIAN AHO SWE', roster_df['Name'])
+    roster_df['Name'] = np.where((roster_df['Name']=="COLIN WHITE") & (roster_df['Pos']=='D'), 'COLIN WHITE CAN', roster_df['Name'])
+    roster_df['Name'] = np.where((roster_df['Name']=="SEAN COLLINS") & (roster_df['Pos']=='D'), 'SEAN COLLINS CAN', roster_df['Name'])
+    roster_df['Name'] = np.where((roster_df['Name']=="ALEX PICARD") & (roster_df['Pos']!='D'), 'ALEX PICARD F', roster_df['Name'])
+    roster_df['Name'] = np.where((roster_df['Name']=="ERIK GUSTAFSSON") & (int(season)<20132014), 'ERIK GUSTAFSSON 88', roster_df['Name'])
+    roster_df['Name'] = np.where((roster_df['Name']=="MIKKO LEHTONEN") & (int(season)<20202021), 'MIKKO LEHTONEN F', roster_df['Name'])
+    roster_df['Name'] = np.where(roster_df['Name']=='COLIN', 'COLIN WHITE CAN', roster_df['Name'])
 
-    return(roster_df)
+    return roster_df 
 
 def scrape_html_shifts(season, game_id):
     
@@ -369,6 +437,395 @@ def scrape_html_shifts(season, game_id):
     if len(found)==0:
         raise IndexError('This game has no shift data.')
     thisteam = soup.find('td', {'align':'center', 'class':'teamHeading + border'}).get_text()
+    
+    goalie_names = ['AARON DELL',
+     'AARON SOROCHAN',
+     'ADAM WERNER',
+     'ADAM WILCOX',
+     'ADIN HILL',
+     'AL MONTOYA',
+     'ALEX AULD',
+     "ALEX D'ORIO",
+     'ALEX LYON',
+     'ALEX NEDELJKOVIC',
+     'ALEX PECHURSKI',
+     'ALEX SALAK',
+     'ALEX STALOCK',
+     'ALEXANDAR GEORGIEV',
+     'ALEXEI MELNICHUK',
+     'ALLEN YORK',
+     'ANDERS LINDBACK',
+     'ANDERS NILSSON',
+     'ANDREI VASILEVSKIY',
+     'ANDREW HAMMOND',
+     'ANDREW RAYCROFT',
+     'ANDREY MAKAROV',
+     'ANGUS REDMOND',
+     'ANTERO NIITTYMAKI',
+     'ANTHONY STOLARZ',
+     'ANTOINE BIBEAU',
+     'ANTON FORSBERG',
+     'ANTON KHUDOBIN',
+     'ANTTI NIEMI',
+     'ANTTI RAANTA',
+     'ARTURS SILOVS',
+     'ARTYOM ZAGIDULIN',
+     'BEN BISHOP',
+     'BEN SCRIVENS',
+     'BEN WEXLER',
+     'BRAD THIESSEN',
+     'BRADEN HOLTBY',
+     'BRANDON HALVERSON',
+     'BRENT JOHNSON',
+     'BRENT KRAHN',
+     'BRETT LEONHARDT',
+     'BRIAN BOUCHER',
+     'BRIAN ELLIOTT',
+     'BRIAN FOSTER',
+     'BRYAN PITTON',
+     'CALVIN HEETER',
+     'CALVIN PETERSEN',
+     'CALVIN PICKARD',
+     'CAM TALBOT',
+     'CAM WARD',
+     'CAMERON JOHNSON',
+     'CAREY PRICE',
+     'CARTER HART',
+     'CARTER HUTTON',
+     'CASEY DESMITH',
+     'CAYDEN PRIMEAU',
+     'CEDRICK DESJARDINS',
+     'CHAD JOHNSON',
+     'CHARLIE LINDGREN',
+     'CHET PICKARD',
+     'CHRIS BECKFORD-TSEU',
+     'CHRIS DRIEDGER',
+     'CHRIS GIBSON',
+     'CHRIS HOLT',
+     'CHRIS MASON',
+     'CHRIS OSGOOD',
+     'COLE KEHLER',
+     'COLLIN DELIA',
+     'CONNOR HELLEBUYCK',
+     'CONNOR INGRAM',
+     'CONNOR KNAPP',
+     'COREY CRAWFORD',
+     'CORY SCHNEIDER',
+     'CRAIG ANDERSON',
+     'CRISTOBAL HUET',
+     'CRISTOPHER NILSTORP',
+     'CURTIS JOSEPH',
+     'CURTIS MCELHINNEY',
+     'CURTIS SANFORD',
+     'DAN CLOUTIER',
+     'DAN ELLIS',
+     'DAN TURPLE',
+     'DAN VLADAR',
+     'DANIEL ALTSHULLER',
+     'DANIEL LACOSTA',
+     'DANIEL LARSSON',
+     'DANIEL MANZATO',
+     'DANIEL TAYLOR',
+     'DANY SABOURIN',
+     'DARCY KUEMPER',
+     'DAREN MACHESNEY',
+     'DAVID AEBISCHER',
+     'DAVID AYRES',
+     'DAVID LENEVEU',
+     'DAVID RITTICH',
+     'DAVID SHANTZ',
+     'DENNIS ENDRAS',
+     'DERECK BARIBEAU',
+     'DEVAN DUBNYK',
+     'DIMITRI PATZOLD',
+     'DOMINIK HASEK',
+     'DREW MACINTYRE',
+     'DUSTIN BUTLER',
+     'DUSTIN TOKARSKI',
+     'DUSTYN ZENNER',
+     'DWAYNE ROLOSON',
+     'DYLAN FERGUSON',
+     'DYLAN WELLS',
+     'EAMON MCADAM',
+     'EDDIE LACK',
+     'EDWARD PASQUALE',
+     'ELVIS MERZLIKINS',
+     'EMIL LARMI',
+     'ERIC COMRIE',
+     'ERIC HARTZELL',
+     'ERIC SEMBORSKI',
+     'ERIK ERSBERG',
+     'EVAN CORMIER',
+     'EVAN FITZPATRICK',
+     'EVGENI NABOKOV',
+     'FELIX SANDSTROM',
+     'FILIP GUSTAVSSON',
+     'FRED BRATHWAITE',
+     'FREDERIC CASSIVI',
+     'FREDERIK ANDERSEN',
+     'FREDRIK NORRENA',
+     'GARRET SPARKS',
+     'GAVIN MCHALE',
+     'GERALD COLEMAN',
+     'GILLES SENN',
+     'HANNU TOIVONEN',
+     'HARRI SATERI',
+     'HENRIK KARLSSON',
+     'HENRIK LUNDQVIST',
+     'HUNTER MISKA',
+     'IGOR BOBKOV',
+     'IGOR SHESTERKIN',
+     'IIRO TARKKI',
+     'ILYA BRYZGALOV',
+     'ILYA SAMSONOV',
+     'ILYA SOROKIN',
+     'IVAN PROSVETOV',
+     'J-F BERUBE',
+     'J.F. BERUBE',
+     'JACK CAMPBELL',
+     'JACOB MARKSTROM',
+     'JAKE ALLEN',
+     'JAKE OETTINGER',
+     'JAMES REIMER',
+     'JARED COREAU',
+     'JAROSLAV HALAK',
+     'JASON BACASHIHUA',
+     'JASON KASDORF',
+     'JASON LABARBERA',
+     'JASON MISSIAEN',
+     'JEAN-PHILIPPE LEVASSEUR',
+     'JEAN-SEBASTIEN AUBIN',
+     'JEAN-SEBASTIEN GIGUERE',
+     'JEFF DESLAURIERS',
+     'JEFF FRAZEE',
+     'JEFF GLASS',
+     'JEFF TYNI',
+     'JEFF ZATKOFF',
+     'JEREMY DUCHESNE',
+     'JEREMY SMITH',
+     'JEREMY SWAYMAN',
+     'JHONAS ENROTH',
+     'JIMMY HOWARD',
+     'JOACIM ERIKSSON',
+     'JOCELYN THIBAULT',
+     'JOE CANNATA',
+     'JOE FALLON',
+     'JOEL MARTIN',
+     'JOEY DACCORD',
+     'JOEY MACDONALD',
+     'JOHAN BACKLUND',
+     'JOHAN GUSTAFSSON',
+     'JOHAN HEDBERG',
+     'JOHAN HOLMQVIST',
+     'JOHN CURRY',
+     'JOHN GIBSON',
+     'JOHN GRAHAME',
+     'JOHN MUSE',
+     'JON GILLIES',
+     'JON-PAUL ANDERSON',
+     'JONAS GUSTAVSSON',
+     'JONAS HILLER',
+     'JONAS JOHANSSON',
+     'JONATHAN BERNIER',
+     'JONATHAN BOUTIN',
+     'JONATHAN QUICK',
+     'JONI ORTIO',
+     'JOONAS KORPISALO',
+     'JORDAN BINNINGTON',
+     'JORDAN PEARCE',
+     'JORDAN SIGALET',
+     'JORDAN WHITE',
+     'JORGE ALVES',
+     'JOSE THEODORE',
+     'JOSEF KORENAR',
+     'JOSEPH WOLL',
+     'JOSH HARDING',
+     'JOSH TORDJMAN',
+     'JUSSI RYNNAS',
+     'JUSTIN KOWALKOSKI',
+     'JUSTIN PETERS',
+     'JUSTIN POGGE',
+     'JUUSE SAROS',
+     'JUUSO RIKSMAN',
+     'KAAPO KAHKONEN',
+     'KADEN FULCHER',
+     'KARI LEHTONEN',
+     'KARRI RAMO',
+     'KASIMIR KASKISUO',
+     'KEITH KINKAID',
+     'KEN APPLEBY',
+     'KENNETH APPLEBY',
+     'KENT SIMPSON',
+     'KEVIN BOYLE',
+     'KEVIN LANKINEN',
+     'KEVIN MANDOLESE',
+     'KEVIN NASTIUK',
+     'KEVIN POULIN',
+     'KEVIN WEEKES',
+     'KRISTERS GUDLEVSKIS',
+     'KURTIS MUCHA',
+     'LANDON BOW',
+     'LARS JOHANSSON',
+     'LAURENT BROSSOIT',
+     'LELAND IRVING',
+     'LINUS ULLMARK',
+     'LOGAN THOMPSON',
+     'LOUIS DOMINGUE',
+     'LUKAS DOSTAL',
+     'MACKENZIE BLACKWOOD',
+     'MACKENZIE SKAPSKI',
+     'MAGNUS HELLBERG',
+     'MALCOLM SUBBAN',
+     'MANNY FERNANDEZ',
+     'MANNY LEGACE',
+     'MARC CHEVERIE',
+     'MARC DENIS',
+     'MARC-ANDRE FLEURY',
+     'MARCUS HOGBERG',
+     'MAREK LANGHAMER',
+     'MAREK MAZANEC',
+     'MAREK SCHWARZ',
+     'MARK DEKANICH',
+     'MARK VISENTIN',
+     'MARTIN BIRON',
+     'MARTIN BRODEUR',
+     'MARTIN GERBER',
+     'MARTIN JONES',
+     'MARTY TURCO',
+     'MAT ROBSON',
+     'MATHIEU CORBEIL',
+     'MATHIEU GARON',
+     'MATISS KIVLENIEKS',
+     'MATT CLIMIE',
+     'MATT DALTON',
+     'MATT HACKETT',
+     'MATT KEETLEY',
+     'MATT MURRAY',
+     'MATT VILLALTA',
+     'MATT ZABA',
+     'MATTHEW HEWITT',
+     "MATTHEW O'CONNOR",
+     'MAXIME LAGACE',
+     'MICHAEL DIPIETRO',
+     'MICHAEL GARTEIG',
+     'MICHAEL HOUSER',
+     'MICHAEL HUTCHINSON',
+     'MICHAEL LEE',
+     'MICHAEL LEIGHTON',
+     'MICHAEL MCNIVEN',
+     'MICHAEL MOLE',
+     'MICHAEL MORRISON',
+     'MICHAEL WALL',
+     'MICHAL NEUVIRTH',
+     'MIIKA WIIKMAN',
+     'MIIKKA KIPRUSOFF',
+     'MIKAEL TELLQVIST',
+     'MIKE BRODEUR',
+     'MIKE CONDON',
+     'MIKE MCKENNA',
+     'MIKE MURPHY',
+     'MIKE SMITH',
+     'MIKKO KOSKINEN',
+     'MIROSLAV SVOBODA',
+     'NATHAN DEOBALD',
+     'NATHAN LAWSON',
+     'NATHAN LIEUWEN',
+     'NATHAN SCHOENFELD',
+     'NICK ELLIS',
+     'NIKLAS BACKSTROM',
+     'NIKLAS LUNDSTROM',
+     'NIKLAS SVEDBERG',
+     'NIKLAS TREUTLE',
+     'NIKOLAI KHABIBULIN',
+     'NOLAN SCHAEFER',
+     'OLIE KOLZIG',
+     'ONDREJ PAVELEC',
+     'OSCAR DANSK',
+     'PASCAL LECLAIRE',
+     'PAT CONACHER',
+     'PATRICK KILLEEN',
+     'PATRICK LALIME',
+     'PAUL DEUTSCH',
+     'PAVEL FRANCOUZ',
+     'PEKKA RINNE',
+     'PETER BUDAJ',
+     'PETER MANNINO',
+     'PETR MRAZEK',
+     'PHEONIX COPLEY',
+     'PHILIPP GRUBAUER',
+     'PHILIPPE DESROSIERS',
+     'RAY EMERY',
+     'RETO BERRA',
+     'RICHARD BACHMAN',
+     'RICK DIPIETRO',
+     'RIKU HELENIUS',
+     'ROB LAURIE',
+     'ROB ZEPP',
+     'ROBB  TALLAS',
+     'ROBBIE TALLAS',
+     'ROBERT MAYER',
+     'ROBERTO LUONGO',
+     'ROBIN LEHNER',
+     'ROMAN WILL',
+     'RYAN LOWE',
+     'RYAN MILLER',
+     'RYAN MUNCE',
+     'RYAN VINZ',
+     'SAM BRITTAIN',
+     'SAM MONTEMBEAULT',
+     'SAMI AITTOKALLIO',
+     'SAMUEL MONTEMBEAULT',
+     'SCOTT CLEMMENSEN',
+     'SCOTT DARLING',
+     'SCOTT FOSTER',
+     'SCOTT MUNROE',
+     'SCOTT STAJCER',
+     'SCOTT WEDGEWOOD',
+     'SEBASTIEN CARON',
+     'SEMYON VARLAMOV',
+     'SERGEI BOBROVSKY',
+     'SHAWN HUNWICK',
+     'SPENCER KNIGHT',
+     'SPENCER MARTIN',
+     'STEFANOS LEKKAS',
+     'STEVE MASON',
+     'STEVE MICHALEK',
+     'STEVE VALIQUETTE',
+     'STUART SKINNER',
+     'THATCHER DEMKO',
+     'THOMAS FENTON',
+     'THOMAS GREISS',
+     'TIM THOMAS',
+     'TIMO PIELMEIER',
+     'TIMOTHY JR. THOMAS',
+     'TOBIAS STEPHAN',
+     'TODD FORD',
+     'TOM MCCOLLUM',
+     'TOMAS POPPERLE',
+     'TOMAS VOKOUN',
+     'TORRIE JUNG',
+     'TRISTAN JARRY',
+     'TROY GROSENICK',
+     'TUUKKA RASK',
+     'TY CONKLIN',
+     'TYLER BUNZ',
+     'TYLER PLANTE',
+     'TYLER STEWART',
+     'TYLER WEIMAN',
+     'TYSON SEXSMITH',
+     'UKKO-PEKKA LUUKKONEN',
+     'VEINI VEHVILAINEN',
+     'VESA TOSKALA',
+     'VIKTOR FASTH',
+     'VILLE HUSSO',
+     'VITEK VANECEK',
+     'WADE DUBIELEWICZ',
+     'YANN DANIS',
+     'ZACH FUCALE',
+     'ZACH SIKICH',
+     'ZACHARY FUCALE',
+     'ZANE KALEMBA',
+     'ZANE MCINTYRE']
 
     players = dict()
 
@@ -465,11 +922,193 @@ def scrape_html_shifts(season, game_id):
                 (60 * (all_shifts.duration.str.split(':').str[0].astype(int))).astype(int) +
               (all_shifts.duration.str.split(':').str[1].astype(int))).astype(int), unit = 's'))).dt.time).astype(str).str[4:]))))
     
+    all_shifts['name'] = np.where(all_shifts['name'].str.contains('ALEXANDRE '), 
+                                all_shifts.name.str.replace('ALEXANDRE ', 'ALEX '),
+                                all_shifts['name'])
+    
+    all_shifts['name'] = np.where(all_shifts['name'].str.contains('ALEXANDER '), 
+                                all_shifts.name.str.replace('ALEXANDER ', 'ALEX '),
+                                all_shifts['name'])
+    
+    all_shifts['name'] = np.where(all_shifts['name'].str.contains('CHRISTOPHER '), 
+                                all_shifts.name.str.replace('CHRISTOPHER ', 'CHRIS '),
+                                all_shifts['name'])
+    
+    all_shifts = all_shifts.assign(name = 
+    (np.where(all_shifts['name']== "ANDREI KASTSITSYN" , "ANDREI KOSTITSYN",
+    (np.where(all_shifts['name']== "AJ GREER" , "A.J. GREER",
+    (np.where(all_shifts['name']== "ANDREW GREENE" , "ANDY GREENE",
+    (np.where(all_shifts['name']== "ANDREW WOZNIEWSKI" , "ANDY WOZNIEWSKI", 
+    (np.where(all_shifts['name']== "ANTHONY DEANGELO" , "TONY DEANGELO",
+    (np.where(all_shifts['name']== "BATES (JON) BATTAGLIA" , "BATES BATTAGLIA",
+    (np.where(all_shifts['name'].isin(["BJ CROMBEEN", "B.J CROMBEEN", "BRANDON CROMBEEN", "B J CROMBEEN"]) , "B.J. CROMBEEN", 
+    (np.where(all_shifts['name']== "BRADLEY MILLS" , "BRAD MILLS",
+    (np.where(all_shifts['name']== "CAMERON BARKER" , "CAM BARKER", 
+    (np.where(all_shifts['name']== "COLIN (JOHN) WHITE" , "COLIN WHITE",
+    (np.where(all_shifts['name']== "CRISTOVAL NIEVES" , "BOO NIEVES",
+    (np.where(all_shifts['name']== "CHRIS VANDE VELDE" , "CHRIS VANDEVELDE", 
+    (np.where(all_shifts['name']== "DANNY BRIERE" , "DANIEL BRIERE",
+    (np.where(all_shifts['name'].isin(["DAN CLEARY", "DANNY CLEARY"]) , "DANIEL CLEARY",
+    (np.where(all_shifts['name']== "DANIEL GIRARDI" , "DAN GIRARDI", 
+    (np.where(all_shifts['name']== "DANNY O'REGAN" , "DANIEL O'REGAN",
+    (np.where(all_shifts['name']== "DANIEL CARCILLO" , "DAN CARCILLO", 
+    (np.where(all_shifts['name']== "DAVID JOHNNY ODUYA" , "JOHNNY ODUYA", 
+    (np.where(all_shifts['name']== "DAVID BOLLAND" , "DAVE BOLLAND", 
+    (np.where(all_shifts['name']== "DENIS JR. GAUTHIER" , "DENIS GAUTHIER",
+    (np.where(all_shifts['name']== "DWAYNE KING" , "DJ KING", 
+    (np.where(all_shifts['name']== "EDWARD PURCELL" , "TEDDY PURCELL", 
+    (np.where(all_shifts['name']== "EMMANUEL FERNANDEZ" , "MANNY FERNANDEZ", 
+    (np.where(all_shifts['name']== "EMMANUEL LEGACE" , "MANNY LEGACE", 
+    (np.where(all_shifts['name']== "EVGENII DADONOV" , "EVGENY DADONOV", 
+    (np.where(all_shifts['name']== "FREDDY MODIN" , "FREDRIK MODIN", 
+    (np.where(all_shifts['name']== "FREDERICK MEYER IV" , "FREDDY MEYER",
+    (np.where(all_shifts['name']== "HARRISON ZOLNIERCZYK" , "HARRY ZOLNIERCZYK", 
+    (np.where(all_shifts['name']== "ILJA BRYZGALOV" , "ILYA BRYZGALOV", 
+    (np.where(all_shifts['name']== "JACOB DOWELL" , "JAKE DOWELL",
+    (np.where(all_shifts['name']== "JAMES HOWARD" , "JIMMY HOWARD", 
+    (np.where(all_shifts['name']== "JAMES VANDERMEER" , "JIM VANDERMEER",
+    (np.where(all_shifts['name']== "JAMES WYMAN" , "JT WYMAN",
+    (np.where(all_shifts['name']== "JOHN HILLEN III" , "JACK HILLEN",
+    (np.where(all_shifts['name']== "JOHN ODUYA" , "JOHNNY ODUYA",
+    (np.where(all_shifts['name']== "JOHN PEVERLEY" , "RICH PEVERLEY",
+    (np.where(all_shifts['name']== "JONATHAN SIM" , "JON SIM",
+    (np.where(all_shifts['name']== "JONATHON KALINSKI" , "JON KALINSKI",
+    (np.where(all_shifts['name']== "JONATHAN AUDY-MARCHESSAULT" , "JONATHAN MARCHESSAULT", 
+    (np.where(all_shifts['name']== "JOSEPH CRABB" , "JOEY CRABB",
+    (np.where(all_shifts['name']== "JOSEPH CORVO" , "JOE CORVO", 
+    (np.where(all_shifts['name']== "JOSHUA BAILEY" , "JOSH BAILEY",
+    (np.where(all_shifts['name']== "JOSHUA HENNESSY" , "JOSH HENNESSY", 
+    (np.where(all_shifts['name']== "JOSHUA MORRISSEY" , "JOSH MORRISSEY",
+    (np.where(all_shifts['name']== "JEAN-FRANCOIS JACQUES" , "J-F JACQUES", 
+    (np.where(all_shifts['name'].isin(["J P DUMONT", "JEAN-PIERRE DUMONT"]) , "J-P DUMONT", 
+    (np.where(all_shifts['name']== "JT COMPHER" , "J.T. COMPHER",
+    (np.where(all_shifts['name']== "KRISTOPHER LETANG" , "KRIS LETANG", 
+    (np.where(all_shifts['name']== "KRYSTOFER BARCH" , "KRYS BARCH", 
+    (np.where(all_shifts['name']== "KRYSTOFER KOLANOS" , "KRYS KOLANOS",
+    (np.where(all_shifts['name']== "MARC POULIOT" , "MARC-ANTOINE POULIOT",
+    (np.where(all_shifts['name']== "MARTIN ST LOUIS" , "MARTIN ST. LOUIS", 
+    (np.where(all_shifts['name']== "MARTIN ST PIERRE" , "MARTIN ST. PIERRE",
+    (np.where(all_shifts['name']== "MARTY HAVLAT" , "MARTIN HAVLAT",
+    (np.where(all_shifts['name']== "MATTHEW CARLE" , "MATT CARLE", 
+    (np.where(all_shifts['name']== "MATHEW DUMBA" , "MATT DUMBA",
+    (np.where(all_shifts['name']== "MATTHEW BENNING" , "MATT BENNING", 
+    (np.where(all_shifts['name']== "MATTHEW IRWIN" , "MATT IRWIN",
+    (np.where(all_shifts['name']== "MATTHEW NIETO" , "MATT NIETO",
+    (np.where(all_shifts['name']== "MATTHEW STAJAN" , "MATT STAJAN",
+    (np.where(all_shifts['name']== "MAXIM MAYOROV" , "MAKSIM MAYOROV",
+    (np.where(all_shifts['name']== "MAXIME TALBOT" , "MAX TALBOT", 
+    (np.where(all_shifts['name']== "MAXWELL REINHART" , "MAX REINHART",
+    (np.where(all_shifts['name']== "MICHAEL BLUNDEN" , "MIKE BLUNDEN",
+    (np.where(all_shifts['name'].isin(["MICHAËL BOURNIVAL", "MICHAÃ\x8bL BOURNIVAL"]), "MICHAEL BOURNIVAL",
+    (np.where(all_shifts['name']== "MICHAEL CAMMALLERI" , "MIKE CAMMALLERI", 
+    (np.where(all_shifts['name']== "MICHAEL FERLAND" , "MICHEAL FERLAND", 
+    (np.where(all_shifts['name']== "MICHAEL GRIER" , "MIKE GRIER",
+    (np.where(all_shifts['name']== "MICHAEL KNUBLE" , "MIKE KNUBLE",
+    (np.where(all_shifts['name']== "MICHAEL KOMISAREK" , "MIKE KOMISAREK",
+    (np.where(all_shifts['name']== "MICHAEL MATHESON" , "MIKE MATHESON",
+    (np.where(all_shifts['name']== "MICHAEL MODANO" , "MIKE MODANO",
+    (np.where(all_shifts['name']== "MICHAEL RUPP" , "MIKE RUPP",
+    (np.where(all_shifts['name']== "MICHAEL SANTORELLI" , "MIKE SANTORELLI", 
+    (np.where(all_shifts['name']== "MICHAEL SILLINGER" , "MIKE SILLINGER",
+    (np.where(all_shifts['name']== "MITCHELL MARNER" , "MITCH MARNER", 
+    (np.where(all_shifts['name']== "NATHAN GUENIN" , "NATE GUENIN",
+    (np.where(all_shifts['name']== "NICHOLAS BOYNTON" , "NICK BOYNTON",
+    (np.where(all_shifts['name']== "NICHOLAS DRAZENOVIC" , "NICK DRAZENOVIC", 
+    (np.where(all_shifts['name']== "NICKLAS BERGFORS" , "NICLAS BERGFORS",
+    (np.where(all_shifts['name']== "NICKLAS GROSSMAN" , "NICKLAS GROSSMANN", 
+    (np.where(all_shifts['name']== "NICOLAS PETAN" , "NIC PETAN", 
+    (np.where(all_shifts['name']== "NIKLAS KRONVALL" , "NIKLAS KRONWALL",
+    (np.where(all_shifts['name']== "NIKOLAI ANTROPOV" , "NIK ANTROPOV",
+    (np.where(all_shifts['name']== "NIKOLAI KULEMIN" , "NIKOLAY KULEMIN", 
+    (np.where(all_shifts['name']== "NIKOLAI ZHERDEV" , "NIKOLAY ZHERDEV",
+    (np.where(all_shifts['name']== "OLIVIER MAGNAN-GRENIER" , "OLIVIER MAGNAN",
+    (np.where(all_shifts['name']== "PAT MAROON" , "PATRICK MAROON", 
+    (np.where(all_shifts['name'].isin(["P. J. AXELSSON", "PER JOHAN AXELSSON"]) , "P.J. AXELSSON",
+    (np.where(all_shifts['name'].isin(["PK SUBBAN", "P.K SUBBAN"]) , "P.K. SUBBAN", 
+    (np.where(all_shifts['name'].isin(["PIERRE PARENTEAU", "PIERRE-ALEX PARENTEAU", "PIERRE-ALEXANDRE PARENTEAU", "PA PARENTEAU", "P.A PARENTEAU", "P-A PARENTEAU"]) , "P.A. PARENTEAU", 
+    (np.where(all_shifts['name']== "PHILIP VARONE" , "PHIL VARONE",
+    (np.where(all_shifts['name']== "QUINTIN HUGHES" , "QUINN HUGHES",
+    (np.where(all_shifts['name']== "RAYMOND MACIAS" , "RAY MACIAS",
+    (np.where(all_shifts['name']== "RJ UMBERGER" , "R.J. UMBERGER",
+    (np.where(all_shifts['name']== "ROBERT BLAKE" , "ROB BLAKE",
+    (np.where(all_shifts['name']== "ROBERT EARL" , "ROBBIE EARL",
+    (np.where(all_shifts['name']== "ROBERT HOLIK" , "BOBBY HOLIK",
+    (np.where(all_shifts['name']== "ROBERT SCUDERI" , "ROB SCUDERI",
+    all_shifts['name']))))))))))))))))))))))))))))))))))))))))))))))))))))))
+    )))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))
+    ))))))))))
+    
+    all_shifts['name'] = (np.where(all_shifts['name']== "RODNEY PELLEY" , "ROD PELLEY",
+    (np.where(all_shifts['name']== "SIARHEI KASTSITSYN" , "SERGEI KOSTITSYN",
+    (np.where(all_shifts['name']== "SIMEON VARLAMOV" , "SEMYON VARLAMOV", 
+    (np.where(all_shifts['name']== "STAFFAN KRONVALL" , "STAFFAN KRONWALL",
+    (np.where(all_shifts['name']== "STEVEN REINPRECHT" , "STEVE REINPRECHT",
+    (np.where(all_shifts['name']== "TJ GALIARDI" , "T.J. GALIARDI",
+    (np.where(all_shifts['name']== "TJ HENSICK" , "T.J. HENSICK",
+    (np.where(all_shifts['name'].isin(["TJ OSHIE", "T.J OSHIE"]) , "T.J. OSHIE", 
+    (np.where(all_shifts['name']== "TOBY ENSTROM" , "TOBIAS ENSTROM", 
+    (np.where(all_shifts['name']== "TOMMY SESTITO" , "TOM SESTITO",
+    (np.where(all_shifts['name']== "VACLAV PROSPAL" , "VINNY PROSPAL",
+    (np.where(all_shifts['name']== "VINCENT HINOSTROZA" , "VINNIE HINOSTROZA",
+    (np.where(all_shifts['name']== "WILLIAM THOMAS" , "BILL THOMAS",
+    (np.where(all_shifts['name']== "ZACHARY ASTON-REESE" , "ZACH ASTON-REESE",
+    (np.where(all_shifts['name']== "ZACHARY SANFORD" , "ZACH SANFORD",
+    (np.where(all_shifts['name']== "ZACHERY STORTINI" , "ZACK STORTINI",
+    (np.where(all_shifts['name']== "MATTHEW MURRAY" , "MATT MURRAY",
+    (np.where(all_shifts['name']== "J-SEBASTIEN AUBIN" , "JEAN-SEBASTIEN AUBIN",
+    (np.where(all_shifts['name'].isin(["J.F. BERUBE", "JEAN-FRANCOIS BERUBE"]) , "J-F BERUBE", 
+    (np.where(all_shifts['name']== "JEFF DROUIN-DESLAURIERS" , "JEFF DESLAURIERS", 
+    (np.where(all_shifts['name']== "NICHOLAS BAPTISTE" , "NICK BAPTISTE",
+    (np.where(all_shifts['name']== "OLAF KOLZIG" , "OLIE KOLZIG",
+    (np.where(all_shifts['name']== "STEPHEN VALIQUETTE" , "STEVE VALIQUETTE",
+    (np.where(all_shifts['name']== "THOMAS MCCOLLUM" , "TOM MCCOLLUM",
+    (np.where(all_shifts['name']== "TIMOTHY JR. THOMAS" , "TIM THOMAS",
+    (np.where(all_shifts['name']== "TIM GETTINGER" , "TIMOTHY GETTINGER",
+    (np.where(all_shifts['name']== "NICHOLAS SHORE" , "NICK SHORE",
+    (np.where(all_shifts['name']== "T.J. TYNAN" , "TJ TYNAN",
+    (np.where(all_shifts['name']== "ALEXIS LAFRENI?RE" , "ALEXIS LAFRENIÈRE",
+    (np.where(all_shifts['name']== "ALEXIS LAFRENIERE" , "ALEXIS LAFRENIÈRE", 
+    (np.where(all_shifts['name']== "ALEXIS LAFRENIÃRE" , "ALEXIS LAFRENIÈRE",
+    (np.where(all_shifts['name']== "TIM STUTZLE" , "TIM STÜTZLE",
+    (np.where(all_shifts['name']== "TIM ST?TZLE" , "TIM STÜTZLE",
+    (np.where(all_shifts['name']== "TIM STÃTZLE" , "TIM STÜTZLE",
+    (np.where(all_shifts['name']== "EGOR SHARANGOVICH" , "YEGOR SHARANGOVICH",
+    (np.where(all_shifts['name']== "CALLAN FOOTE" , "CAL FOOTE",
+    (np.where(all_shifts['name']== "MATTIAS JANMARK-NYLEN" , "MATTIAS JANMARK",
+    (np.where(all_shifts['name']== "JOSH DUNNE" , "JOSHUA DUNNE",all_shifts['name'])))))))))))))))))))))))))))))))))))))))))))
+    )))))))))))))))))))))))))))))))))
+    
+    
+    all_shifts = all_shifts.assign(end_time = np.where(pd.to_datetime(all_shifts.start_time).dt.time > pd.to_datetime(all_shifts.end_time).dt.time, '20:00', all_shifts.end_time),
+                                  goalie = np.where(all_shifts.name.isin(goalie_names), 1, 0))
+    
+    all_shifts = all_shifts.merge(all_shifts.groupby(['team', 'period'])['goalie'].sum().reset_index().rename(columns = {'goalie':'period_gs'}))
+    
+    # Implement fix for goalies: Goalies who showed up late in the period and were the only goalie to play have their start time re-set to 0:00. 
+    
+    all_shifts = all_shifts.assign(start_time = np.where((all_shifts.goalie==1) & (all_shifts.start_time!='0:00') & (all_shifts.period_gs==1), '0:00', all_shifts.start_time))
+    
+    all_shifts = all_shifts.assign(end_time = np.where(
+    (pd.to_datetime(all_shifts.start_time).dt.time < datetime(2021, 6, 10, 18, 0, 0).time()) & 
+    (all_shifts.period!=3) & 
+    (all_shifts.goalie==1) &
+    (all_shifts.period_gs==1),
+    '20:00', all_shifts.end_time))
+    
+    all_shifts = all_shifts.assign(end_time = np.where(
+    (pd.to_datetime(all_shifts.start_time).dt.time < datetime(2021, 6, 10, 13, 0, 0).time()) & 
+    (all_shifts.goalie==1) &
+    (all_shifts.period_gs==1),
+    '20:00', all_shifts.end_time))
+    
+    global myshifts
+    global changes_on
+    global changes_off
     myshifts = all_shifts
     
     myshifts.start_time = myshifts.start_time.str.strip()
     myshifts.end_time = myshifts.end_time.str.strip()
-    
+
     changes_on = myshifts.groupby(['team', 'period', 'start_time']).agg(
         on = ('name', ', '.join),
         on_numbers = ('number', ', '.join),
@@ -495,7 +1134,7 @@ def scrape_html_shifts(season, game_id):
     
     full_changes = full_changes.assign(team = np.where(full_changes.team=='CANADIENS MONTREAL', 'MONTREAL CANADIENS', full_changes.team))
         
-    return(full_changes.reset_index(drop = True))
+    return full_changes.reset_index(drop = True)#.drop(columns = ['time', 'period_seconds']) 
 
 def scrape_api_events(game_id, drop_description = True, shift_to_espn = False):
     
@@ -721,7 +1360,7 @@ def scrape_api_events(game_id, drop_description = True, shift_to_espn = False):
         (np.where(api_events['ep1_name']=="TIM GETTINGER", "TIMOTHY GETTINGER", 
         (np.where(api_events['ep1_name']=="THOMAS DI PAULI", "THOMAS DI PAULI", 
         (np.where(api_events['ep1_name']=="NICHOLAS SHORE", "NICK SHORE",
-        (np.where(api_events['ep1_name']=="T.J.  TYNAN", "TJ TYNAN",
+        (np.where(api_events['ep1_name']=="T.J. TYNAN", "TJ TYNAN",
 
         ## '20-21 CHANGES (from HTM update function)
         (np.where(api_events['ep1_name']=="ALEXIS LAFRENI?RE", "ALEXIS LAFRENIÈRE",
@@ -815,7 +1454,7 @@ def scrape_html_events(season, game_id):
             game.event_player_str.str.split(' ').str[2])
     #return game
 
-    if len(game[game.description.str.contains('Drawn by')])>0:
+    if len(game[game.description.str.contains('Drawn By')])>0:
     
         game = game.assign(event_player_2 = np.where(game.description.str.contains('Drawn By'), 
                                           game.description.str.split('Drawn By').str[1].str.split('#').str[1].str.split(' ').str[0].str.strip(), 
@@ -2026,7 +2665,6 @@ def full_scrape_1by1(game_id_list, shift_to_espn = False):
 
     return full
 
-
 def full_scrape(game_id_list, shift = False):
     
     global hidden_patrick
@@ -2050,5 +2688,5 @@ def full_scrape(game_id_list, shift = False):
     else:
         return df
 
-
-print('Welcome to the TopDownHockey NHL Scraper!')
+print("Welcome to the TopDownHockey NHL Scraper, built by Patrick Bacon.")
+print("If you enjoy the scraper and would like to support my work, or you have any comments, questions, or concerns, feel free to follow me on Twitter @TopDownHockey or reach out to me via email at patrick.s.bacon@gmail.com. Have fun!")
