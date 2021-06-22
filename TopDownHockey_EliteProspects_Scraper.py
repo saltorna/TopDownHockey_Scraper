@@ -85,7 +85,7 @@ def getskaters(league, year):
                 df_players = tableDataText(player_table)
                 
             except AttributeError:
-                print("BREAK: TABLE NONE ERROR: " + str(requests.get(url+str(i)), timeout = 500) + " On League: " + league + " In Year: " + year)
+                print("BREAK: TABLE NONE ERROR: " + str(requests.get(url+str(i), timeout = 500)) + " On League: " + league + " In Year: " + year)
                 break
                 
             if len(df_players)>0:
@@ -147,7 +147,7 @@ def getskaters(league, year):
 
             return df_players
         
-        else: print("LENGTH 0 ERROR: " + str(requests.get(url+str(1)), timeout = 500) + " On League: " + league + " In Year: " + year)
+        else: print("LENGTH 0 ERROR: " + str(requests.get(url+str(1), timeout = 500)) + " On League: " + league + " In Year: " + year)
             
 def getgoalies(league, year):
     """
@@ -197,7 +197,7 @@ def getgoalies(league, year):
             try:
                 df_players = tableDataText(player_table)
             except AttributeError:
-                print("BREAK: TABLE NONE ERROR: " + str(requests.get(url+str(i)), timeout = 500) + " On League: " + league + " In Year: " + year)
+                print("BREAK: TABLE NONE ERROR: " + str(requests.get(url+str(i), timeout = 500)) + " On League: " + league + " In Year: " + year)
                 break
                 
             if len(df_players)>0:
@@ -269,7 +269,16 @@ def get_info(link):
         player = soup.find("title").string.replace(" - Elite Prospects" ,"")
 
     else: player = "-"
-
+        
+    if soup.find("div", {"class":"order-11 ep-list__item ep-list__item--in-card-body ep-list__item--is-compact"})!=None:
+        rights = soup.find("div", {"class":"order-11 ep-list__item ep-list__item--in-card-body ep-list__item--is-compact"}
+         ).find("div", {"class":"col-xs-12 col-18 text-right p-0"}).find("span").string.split("\n")[1].split("/")[0].strip()
+        status = soup.find("div", {"class":"order-11 ep-list__item ep-list__item--in-card-body ep-list__item--is-compact"}
+         ).find("div", {"class":"col-xs-12 col-18 text-right p-0"}).find("span").string.split("\n")[1].split("/")[1].strip()
+    else:
+        rights = "-"
+        status = "-"
+                 
     if (soup.find("div", {"class":"col-xs-12 col-17 text-right p-0 ep-text-color--black"}))!= None:
         if 'dob' in (soup.find("div", {"class":"col-xs-12 col-17 text-right p-0 ep-text-color--black"})).find("a")['href']:
             dob = soup.find("div", {"class":"col-xs-12 col-17 text-right p-0 ep-text-color--black"}).find("a")['href'].split("dob=", 1)[1].split("&sort", 1)[0]
@@ -349,7 +358,7 @@ def get_info(link):
     #height = np.where(height=="- / -", "-", height)
 
     #print(player + " scraped!")
-    return(player, dob, height, weight, birthplace, nation, shoots, draft, link)
+    return(player, rights, status, dob, height, weight, birthplace, nation, shoots, draft, link)  
     
 def get_player_information(dataframe):
     '''
@@ -357,6 +366,8 @@ def get_player_information(dataframe):
     '''
 
     myplayer = []
+    myrights = []
+    mystatus = []
     mydob = []
     myheight = []
     myweight = []
@@ -372,14 +383,16 @@ def get_player_information(dataframe):
         try:
             myresult = get_info(((list(set(dataframe.link))[i])))
             myplayer.append(myresult[0])
-            mydob.append(myresult[1])
-            myheight.append(myresult[2])
-            myweight.append(myresult[3])
-            mybirthplace.append(myresult[4])
-            mynation.append(myresult[5])
-            myshot.append(myresult[6])
-            mydraft.append(myresult[7])
-            mylink.append(myresult[8])
+            myrights.append(myresult[1])
+            mystatus.append(myresult[2])
+            mydob.append(myresult[3])
+            myheight.append(myresult[4])
+            myweight.append(myresult[5])
+            mybirthplace.append(myresult[6])
+            mynation.append(myresult[7])
+            myshot.append(myresult[8])
+            mydraft.append(myresult[9])
+            mylink.append(myresult[10])
             print(myresult[0] + " scraped! That's " + str(i + 1) + " down! Only " + str(len(list(set(dataframe.link))) - (i + 1)) +  " left to go!")
         except KeyboardInterrupt:
             print("You interrupted this one manually. The output here will be every player you've scraped so far. Good bye!")
@@ -393,9 +406,11 @@ def get_player_information(dataframe):
             print("Luckily, everything you've scraped up to this point will still be safe.")
             break
 
-    resultdf = pd.DataFrame(columns = ["player", "dob", "height", "weight", "birthplace", "nation", "shoots", "draft", "link"])
+    resultdf = pd.DataFrame(columns = ["player", "rights", "status", "dob", "height", "weight", "birthplace", "nation", "shoots", "draft", "link"])
 
     resultdf.player = myplayer
+    resultdf.rights = myrights
+    resultdf.status = mystatus
     resultdf.dob = mydob
     resultdf.height = myheight
     resultdf.weight = myweight
@@ -408,8 +423,6 @@ def get_player_information(dataframe):
     print("Your scrape is complete! You've obtained player information for " + str(len(resultdf)) + " players!")
     
     return resultdf
-
-
         
 def get_league_skater_boxcars(league, seasons):
     """
@@ -586,14 +599,15 @@ def get_goalies(leagues, seasons):
                 if hidden_patrick == 4:
                     raise KeyboardInterrupt
                 if hidden_patrick == 5:
-                    raise Patrick
+                    raise ConnectionError
             except KeyboardInterrupt:
                 print("You interrupted this one manually. The output here will be every player you've scraped so far. Good bye!")
                 break
-            except Patrick:
-                print("You were disconnected! The output here will be every player you've scraped so far. Here's your error message:")
+            except ConnectionError:
+                print("You were disconnected! Let's sleep and try again.")
                 print(error)
-                break
+                time.sleep(100)
+                continue
                 
         if len(set(leaguesall.league))==1:
             scraped_league_list = leaguesall.league
@@ -621,14 +635,15 @@ def get_goalies(leagues, seasons):
                 if hidden_patrick == 4:
                     raise KeyboardInterrupt
                 if hidden_patrick == 5:
-                    raise Patrick
+                    raise ConnectionError
             except KeyboardInterrupt:
                 print("You interrupted this one manually. The output here will be every player you've scraped so far. Good bye!")
                 break
-            except Patrick:
-                print("You were disconnected! The output here will be every player you've scraped so far. Here's your error message:")
+            except ConnectionError:
+                print("You were disconnected! Let's sleep and try again.")
                 print(error)
-                break
+                time.sleep(100)
+                continue
                 
         if len(set(leaguesall.league))==1:
             scraped_league_list = leaguesall.league
@@ -741,9 +756,10 @@ def get_skaters(leagues, seasons):
                 print("You interrupted this one manually. The output here will be every player you've scraped so far. Good bye!")
                 break
             except ConnectionError:
-                print("You were disconnected! The output here will be every player you've scraped so far. Here's your error message:")
+                print("You were disconnected! Let's sleep and try again.")
                 print(error)
-                break
+                time.sleep(100)
+                continue
                 
         if len(set(leaguesall.league))==1:
             scraped_league_list = leaguesall.league
@@ -771,14 +787,15 @@ def get_skaters(leagues, seasons):
                 if hidden_patrick == 4:
                     raise KeyboardInterrupt
                 if hidden_patrick == 5:
-                    raise Patrick
+                    raise ConnectionError
             except KeyboardInterrupt:
                 print("You interrupted this one manually. The output here will be every player you've scraped so far. Good bye!")
                 break
-            except Patrick:
-                print("You were disconnected! The output here will be every player you've scraped so far. Here's your error message:")
+            except ConnectionError:
+                print("You were disconnected! Let's sleep and try again.")
                 print(error)
-                break
+                time.sleep(100)
+                continue
                 
         if len(set(leaguesall.league))==1:
             scraped_league_list = leaguesall.league
