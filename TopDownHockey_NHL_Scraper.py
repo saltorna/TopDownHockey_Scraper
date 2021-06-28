@@ -1090,13 +1090,14 @@ def scrape_html_shifts(season, game_id):
     
     all_shifts = all_shifts.assign(end_time = np.where(
     (pd.to_datetime(all_shifts.start_time).dt.time < datetime(2021, 6, 10, 18, 0, 0).time()) & 
-    (all_shifts.period!=3) & 
+    (all_shifts.period!=3) & (all_shifts.period!=4) & 
     (all_shifts.goalie==1) &
     (all_shifts.period_gs==1),
     '20:00', all_shifts.end_time))
     
     all_shifts = all_shifts.assign(end_time = np.where(
     (pd.to_datetime(all_shifts.start_time).dt.time < datetime(2021, 6, 10, 13, 0, 0).time()) & 
+    (all_shifts.period!=4) &
     (all_shifts.goalie==1) &
     (all_shifts.period_gs==1),
     '20:00', all_shifts.end_time))
