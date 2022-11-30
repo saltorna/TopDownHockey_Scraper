@@ -36,15 +36,12 @@ def getskaters(league, year):
 	"""
 	A function that is built strictly for the back end and should not be run by the user.
 	"""
-
 	url = 'https://www.eliteprospects.com/league/' + league + '/stats/' + year + '?page='
 	# print('Collects data from ' + 'https://www.eliteprospects.com/league/' + league + '/stats/' + year)
-
 	print("Beginning scrape of " + league + " skater data from " + year + ".")
 
 	# Return list with all plyers for season in link
 	players = []
-
 	page = (requests.get(url + str(1), timeout=500))
 	first_page_string = str(page)
 
@@ -55,7 +52,7 @@ def getskaters(league, year):
 		first_page_string = str(page)
 		print("Changed the string before entering the page. Let's try again")
 
-	if (str(first_page_string) == '<Response [404]>'):
+	if str(first_page_string) == '<Response [404]>':
 		print("ERROR: " + str(first_page_string) + " on league: " + league + " in year: " + year + ". Data doesn't exist for this league in this year.")
 
 	else:
@@ -146,18 +143,11 @@ def getgoalies(league, year):
 	"""
 	A function that is built strictly for the back end and should not be run by the user.
 	"""
-
-	url = 'https://www.eliteprospects.com/league/' + league + '/stats/' + year + '?page-goalie='
-	# print('Collects data from ' + 'https://www.eliteprospects.com/league/' + league + '/stats/' + year)
-
+	url = 'https://www.eliteprospects.com/league/' + league + '/stats/' + year + '?page-goalie='  # Collects data from https://www.eliteprospects.com/league/{league}/stats/{year}
 	print("Beginning scrape of " + league + " goalie data from " + year + ".")
-
-	# Return list with all plyers for season in link
-	players = []
-
+	players = []  # Return list with all plyers for season in link
 	page = (requests.get(url + str(1) + "#goalies", timeout=500))
 	first_page_string = str(page)
-
 	while first_page_string == '<Response [403]>':
 		print("Just got a 403 Error before entering the page. This means EliteProspects has temporarily blocked your IP address.")
 		print("We're going to sleep for 60 seconds, then try again.")
@@ -165,9 +155,8 @@ def getgoalies(league, year):
 		page = (requests.get(url + str(1) + "#goalies", timeout=500))
 		first_page_string = str(page)
 		print("Okay, let's try this again")
-
 	if first_page_string == '<Response [404]>':
-		print("ERROR: " + first_page_string + " on league: " + league + " in year: " + year + ". Data doesn't exist for this league and season.")
+		print(f"ERROR: {first_page_string} on league: {league} in year: {year}. Data doesn't exist for this league and season.")
 
 	else:
 		for i in range(1, 99):
@@ -809,7 +798,7 @@ def _get_league_standings(league, year):  # TODO complete this
 		first_page_string = str(page)
 		print("Okay, let's try this again")
 	if first_page_string == '<Response [404]>':
-		print("ERROR: " + first_page_string + " on league: " + league + " in year: " + year + ". Data doesn't exist for this league and season.")
+		print(f"ERROR: {first_page_string} on league: {league} in year: {year}. Data doesn't exist for this league and season.")
 	else:
 		soup = BeautifulSoup(page.content, "html.parser")
 		tbl = soup.find("table", {"class": "table standings table-sortable"})
