@@ -183,7 +183,6 @@ def get_info(link):
 	"""
 	page = requests.get(link, timeout=500)
 	soup = BeautifulSoup(page.content, "html.parser")
-
 	page_string = str(page)
 	# TODO this is different than __403_rest due to "evil" -- can still do it
 	while page_string == '<Response [403]>' or "evil" in str(soup.p):
@@ -192,80 +191,42 @@ def get_info(link):
 		page_string = str(page)
 		soup = BeautifulSoup(page.content, "html.parser")
 		time.sleep(60)
-
-	if soup.find("title") != None:  # TODO should be if not soup.find('title')
-		player = soup.find("title").string.replace(" - Elite Prospects", "")
-	else: player = "-"
-	# TODO default player, rights, status, etc. to "-" and only override if found
-	if soup.find("div", {"class": "order-11 ep-list__item ep-list__item--in-card-body ep-list__item--is-compact"}) != None:
-		rights = soup.find("div", {"class": "order-11 ep-list__item ep-list__item--in-card-body ep-list__item--is-compact"}
-						   ).find("div", {"class": "col-xs-12 col-18 text-right p-0"}).find("span").string.split("\n")[1].split("/")[0].strip()
-		status = soup.find("div", {"class": "order-11 ep-list__item ep-list__item--in-card-body ep-list__item--is-compact"}
-						   ).find("div", {"class": "col-xs-12 col-18 text-right p-0"}).find("span").string.split("\n")[1].split("/")[1].strip()
-	else: rights, status = "-", "-"
-
-	if (soup.find("div", {"class": "col-xs-12 col-17 text-right p-0 ep-text-color--black"})) != None:
-		if 'dob' in (soup.find("div", {"class": "col-xs-12 col-17 text-right p-0 ep-text-color--black"})).find("a")['href']:
-			dob = soup.find("div", {"class": "col-xs-12 col-17 text-right p-0 ep-text-color--black"}).find("a")['href'].split("dob=", 1)[1].split("&sort", 1)[0]
-		else: dob = "-"
-	else: dob = "-"
-
-	if soup.find("div", {"class": "order-6 order-sm-3 ep-list__item ep-list__item--col-2 ep-list__item--in-card-body ep-list__item--is-compact"}) != None:
-		if "cm" in soup.find("div", {"class": "order-6 order-sm-3 ep-list__item ep-list__item--col-2 ep-list__item--in-card-body ep-list__item--is-compact"}
-							 ).find(
-			"div", {"class": "col-xs-12 col-18 text-right p-0 ep-text-color--black"}).string:
-			height = soup.find("div", {"class": "order-6 order-sm-3 ep-list__item ep-list__item--col-2 ep-list__item--in-card-body ep-list__item--is-compact"}
-							   ).find(
-				"div", {"class": "col-xs-12 col-18 text-right p-0 ep-text-color--black"}).string.split(" / ")[1].split("cm")[0].strip()
-		else: height = "-"
-	else: height = "-"
-
-	if soup.find("div", {"class": "order-7 order-sm-5 ep-list__item ep-list__item--col-2 ep-list__item--in-card-body ep-list__item--is-compact"}) != None:
-		if soup.find("div", {"class": "order-7 order-sm-5 ep-list__item ep-list__item--col-2 ep-list__item--in-card-body ep-list__item--is-compact"}
-					 ).find(
-			"div", {"class": "col-xs-12 col-18 text-right p-0 ep-text-color--black"}).string.split("\n")[1].split("lbs")[0].strip() == '- / -':
-			weight = "-"
-		else:
-			weight = soup.find("div", {"class": "order-7 order-sm-5 ep-list__item ep-list__item--col-2 ep-list__item--in-card-body ep-list__item--is-compact"}
-							   ).find(
-				"div", {"class": "col-xs-12 col-18 text-right p-0 ep-text-color--black"}).string.split("\n")[1].split("lbs")[0].strip()
-
-	else: weight = "-"
-	# TODO this should be if not soup.find
-	if soup.find("div", {"class": "order-2 order-sm-4 ep-list__item ep-list__item--col-2 ep-list__item--in-card-body ep-list__item--is-compact"}
-				 ) != None:
-		if soup.find("div", {"class": "order-2 order-sm-4 ep-list__item ep-list__item--col-2 ep-list__item--in-card-body ep-list__item--is-compact"}
-					 ).find(
-			"div", {"class": "col-xs-12 col-17 text-right p-0 ep-text-color--black"}).find("a") != None:
-			birthplace = soup.find("div", {"class": "order-2 order-sm-4 ep-list__item ep-list__item--col-2 ep-list__item--in-card-body ep-list__item--is-compact"}
-								   ).find(
-				"div", {"class": "col-xs-12 col-17 text-right p-0 ep-text-color--black"}).find("a").string.replace("\n", "").strip()
-
-		else: birthplace = "-"
-	else: birthplace = "-"
-
-	if soup.find("div", {"class": "order-3 order-sm-6 ep-list__item ep-list__item--col-2 ep-list__item--in-card-body ep-list__item--is-compact"}) != None:
-		if soup.find("div", {"class": "order-3 order-sm-6 ep-list__item ep-list__item--col-2 ep-list__item--in-card-body ep-list__item--is-compact"}
-					 ).find(
-			"div", {"class": "col-xs-12 col-18 text-right p-0 ep-text-color--black"}).find("a") != None:
-			nation = soup.find("div", {"class": "order-3 order-sm-6 ep-list__item ep-list__item--col-2 ep-list__item--in-card-body ep-list__item--is-compact"}
-							   ).find(
-				"div", {"class": "col-xs-12 col-18 text-right p-0 ep-text-color--black"}).find("a").string.replace("\n", "").strip()
-		else: nation = "-"
-	else: nation = "-"
-
-	if soup.find("div", {"class": "order-8 order-sm-7 ep-list__item ep-list__item--col-2 ep-list__item--in-card-body ep-list__item--is-compact"}) != None:
-		shoots = soup.find("div", {"class": "order-8 order-sm-7 ep-list__item ep-list__item--col-2 ep-list__item--in-card-body ep-list__item--is-compact"}
-						   ).find(
-			"div", {"class": "col-xs-12 col-18 text-right p-0 ep-text-color--black"}).string.replace("\n", "").strip()
-
-	else: shoots = "-"
-
-	if soup.find("div", {"class": "order-12 ep-list__item ep-list__item--in-card-body ep-list__item--is-compact"}) != None:
-		draft = soup.find("div", {"class": "order-12 ep-list__item ep-list__item--in-card-body ep-list__item--is-compact"}
-						  ).find(
-			"div", {"class": "col-xs-12 col-18 text-right p-0"}).find("a").string.replace("\n", "").strip()
-	else: draft = "-"
+	player, rights, status, dob, height, weight, birthplace, nation, shoots, draft = '-' * 10
+	# get playername
+	if soup.find("title"): player = soup.find("title").string.replace(" - Elite Prospects", "")
+	# get rights and status
+	rightstatus_div = soup.find("div", {"class": "order-11 ep-list__item ep-list__item--in-card-body ep-list__item--is-compact"})
+	if rightstatus_div:
+		rights = rightstatus_div.find("div", {"class": "col-xs-12 col-18 text-right p-0"}).find("span").string.split("\n")[1].split("/")[0].strip()
+		status = rightstatus_div.find("div", {"class": "col-xs-12 col-18 text-right p-0"}).find("span").string.split("\n")[1].split("/")[1].strip()
+	# get dob
+	dob_div = soup.find("div", {"class": "col-xs-12 col-17 text-right p-0 ep-text-color--black"})
+	if dob_div and 'dob' in dob_div.find("a")['href']: dob = dob_div.find("a")['href'].split("dob=", 1)[1].split("&sort", 1)[0]
+	# get height
+	height_div = soup.find("div", {"class": "order-6 order-sm-3 ep-list__item ep-list__item--col-2 ep-list__item--in-card-body ep-list__item--is-compact"})
+	if height_div and "cm" in height_div.find("div", {"class": "col-xs-12 col-18 text-right p-0 ep-text-color--black"}).string:
+		height = height_div.find("div", {"class": "col-xs-12 col-18 text-right p-0 ep-text-color--black"}).string.split(" / ")[1].split("cm")[0].strip()
+	# get weight
+	weight_div = soup.find("div", {"class": "order-7 order-sm-5 ep-list__item ep-list__item--col-2 ep-list__item--in-card-body ep-list__item--is-compact"})
+	if weight_div:
+		wght = weight_div.find("div", {"class": "col-xs-12 col-18 text-right p-0 ep-text-color--black"}).string.split("\n")[1].split("lbs")[0].strip()
+		weight = '-' if wght == '- / -' else wght
+	# get birthplace
+	birthplace_div = soup.find("div", {"class": "order-2 order-sm-4 ep-list__item ep-list__item--col-2 ep-list__item--in-card-body ep-list__item--is-compact"})
+	if birthplace_div:
+		brthplc = birthplace_div.find("div", {"class": "col-xs-12 col-17 text-right p-0 ep-text-color--black"}).find("a")
+		if brthplc: birthplace = brthplc.string.replace("\n", "").strip()
+	# get nation
+	nation_div = soup.find("div", {"class": "order-3 order-sm-6 ep-list__item ep-list__item--col-2 ep-list__item--in-card-body ep-list__item--is-compact"})
+	if nation_div:
+		ntn = nation_div.find("div", {"class": "col-xs-12 col-18 text-right p-0 ep-text-color--black"}).find("a")
+		if ntn: nation = ntn.string.replace("\n", "").strip()
+	# get shoots
+	shoots_div = soup.find("div", {"class": "order-8 order-sm-7 ep-list__item ep-list__item--col-2 ep-list__item--in-card-body ep-list__item--is-compact"})
+	if shoots_div: shoots = shoots_div.find("div", {"class": "col-xs-12 col-18 text-right p-0 ep-text-color--black"}).string.replace("\n", "").strip()
+	# get draft
+	draft_div = soup.find("div", {"class": "order-12 ep-list__item ep-list__item--in-card-body ep-list__item--is-compact"})
+	if draft_div: draft = draft_div.find("div", {"class": "col-xs-12 col-18 text-right p-0"}).find("a").string.replace("\n", "").strip()
 	return player, rights, status, dob, height, weight, birthplace, nation, shoots, draft, link
 
 
@@ -274,23 +235,11 @@ def get_player_information(dataframe):
 	biographical information for all players in said datafram.
 	Returns it as a dataframe."""
 
-	myplayer = []
-	myrights = []
-	mystatus = []
-	mydob = []
-	myheight = []
-	myweight = []
-	mybirthplace = []
-	mynation = []
-	myshot = []
-	mydraft = []
-	mylink = []
-
+	myplayer, myrights, mystatus, mydob, myheight, myweight, mybirthplace, mynation, myshot, mydraft, mylink = [[]] * 11
 	print("Beginning scrape for " + str(len(list(set(dataframe.link)))) + " players.")
-
 	for i in range(0, len(list(set(dataframe.link)))):
 		try:
-			myresult = get_info(((list(set(dataframe.link))[i])))
+			myresult = get_info(list(set(dataframe.link))[i])
 			myplayer.append(myresult[0])
 			myrights.append(myresult[1])
 			mystatus.append(myresult[2])
