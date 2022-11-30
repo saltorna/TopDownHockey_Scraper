@@ -15,6 +15,24 @@ from requests import ConnectionError, ReadTimeout, ConnectTimeout, HTTPError, Ti
 from typing import List
 
 
+def __403_rest(
+		response_string: str,
+		url: str,
+		url_append: str = '',
+		sleep: int = 100,
+		timeout: int = 500,
+		pageno: int = 1
+):
+	while response_string == '<Response [403]>':
+		print("Just got a 403 Error before entering the page. This means EliteProspects has temporarily blocked your IP address.")
+		print(f"We're going to sleep for {sleep} seconds, then try again.")
+		time.sleep(sleep)
+		response_page = requests.get(url + str(pageno) + url_append, timeout=timeout)
+		response_string = str(response_page)
+		print("Changed the string within the page. Let's try again")
+	return response_page, response_string
+
+
 def tableDataText(table):
 	"""
 	A function that is built strictly for the back end and should not be run by the user.
@@ -36,45 +54,23 @@ def getskaters(league, year):
 	"""
 	A function that is built strictly for the back end and should not be run by the user.
 	"""
-	url = 'https://www.eliteprospects.com/league/' + league + '/stats/' + year + '?page='
-	# print('Collects data from ' + 'https://www.eliteprospects.com/league/' + league + '/stats/' + year)
+	url = f'https://www.eliteprospects.com/league/{league}/stats/{year}?page='  # Collects data from https://www.eliteprospects.com/league/{league}/stats/{year}
 	print("Beginning scrape of " + league + " skater data from " + year + ".")
-
-	# Return list with all plyers for season in link
-	players = []
+	players = []  # Return list with all players for season in link
 	page = requests.get(url + str(1), timeout=500)
 	first_page_string = str(page)
-
-	while first_page_string == '<Response [403]>':
-		print("Just got a 403 Error before entering the page. Time to Sleep, then re-obtain the link.")
-		time.sleep(100)
-		page = requests.get(url + str(1), timeout=500)
-		first_page_string = str(page)
-		print("Changed the string before entering the page. Let's try again")
-
-	if str(first_page_string) == '<Response [404]>':
-		print("ERROR: " + str(first_page_string) + " on league: " + league + " in year: " + year + ". Data doesn't exist for this league in this year.")
-
+	page, first_page_string = __403_rest(response_string=first_page_string, url=url)
+	if first_page_string == '<Response [404]>': print(f"ERROR: {first_page_string} on league: {league} in year: {year}. Data doesn't exist for this league and season.")
 	else:
 		for i in range(1, 99):
 			page = requests.get(url + str(i), timeout=500)
 			page_string = str(page)
-
-			while page_string == '<Response [403]>':
-				print("Just got a 403 Error within the page. Time to Sleep, then re-obtain the link.")
-				time.sleep(100)
-				page = requests.get(url + str(i), timeout=500)
-				page_string = str(page)
-				print("Changed the string within the page. Let's try again")
-
+			page, page_string = __403_rest(response_string=page_string, url=url, pageno=i)
 			soup = BeautifulSoup(page.content, "html.parser")
-
 			# Get data for players table
 			player_table = soup.find("table", {"class": "table table-striped table-sortable player-stats highlight-stats season"})
-
 			try:
 				df_players = tableDataText(player_table)
-
 			except AttributeError:
 				print("BREAK: TABLE NONE ERROR: " + str(requests.get(url + str(i), timeout=500)) + " On League: " + league + " In Year: " + year)
 				break
@@ -83,33 +79,24 @@ def getskaters(league, year):
 				if df_players['#'].count() > 0:
 					# Remove empty rows
 					df_players = df_players[df_players['#'] != ''].reset_index(drop=True)
-
-					# Extract href links in table
-					href_row = []
+					href_row = []  # Extract href links in table
 					for link in player_table.find_all('a'):
 						href_row.append(link.attrs['href'])
-
 					# Create data frame, rename and only keep links to players
 					df_links = pd.DataFrame(href_row)
 					df_links.rename(columns={df_links.columns[0]: "link"}, inplace=True)
 					df_links = df_links[df_links['link'].str.contains("/player/")].reset_index(drop=True)
-
 					# Add links to players
 					df_players['link'] = df_links['link']
-
 					players.append(df_players)
-
 			# Wait 3 seconds before going to next
 			# time.sleep(1)
 			# print("Scraped page " + str(i))
-
-			else:
-				# print("Scraped final page of: " + league + " In Year: " + year)
+			else:  # print("Scraped final page of: " + league + " In Year: " + year)
 				break
 
 		if len(players) != 0:
 			df_players = pd.concat(players).reset_index()
-
 			df_players.columns = map(str.lower, df_players.columns)
 
 			# Clean up dataset
@@ -135,7 +122,6 @@ def getskaters(league, year):
 			print("Successfully scraped all " + league + " skater data from " + year + ".")
 
 			return df_players
-
 		else: print("LENGTH 0 ERROR: " + str(requests.get(url + str(1), timeout=500)) + " On League: " + league + " In Year: " + year)
 
 
@@ -143,38 +129,21 @@ def getgoalies(league, year):
 	"""
 	A function that is built strictly for the back end and should not be run by the user.
 	"""
-	url = 'https://www.eliteprospects.com/league/' + league + '/stats/' + year + '?page-goalie='  # Collects data from https://www.eliteprospects.com/league/{league}/stats/{year}
+	url = f'https://www.eliteprospects.com/league/{league}/stats/{year}?page-goalie='  # Collects data from https://www.eliteprospects.com/league/{league}/stats/{year}
 	print("Beginning scrape of " + league + " goalie data from " + year + ".")
-	players = []  # Return list with all plyers for season in link
+	players = []  # Return list with all goalies for season in link
 	page = requests.get(url + str(1) + "#goalies", timeout=500)
 	first_page_string = str(page)
-	while first_page_string == '<Response [403]>':
-		print("Just got a 403 Error before entering the page. This means EliteProspects has temporarily blocked your IP address.")
-		print("We're going to sleep for 60 seconds, then try again.")
-		time.sleep(100)
-		page = requests.get(url + str(1) + "#goalies", timeout=500)
-		first_page_string = str(page)
-		print("Okay, let's try this again")
-	if first_page_string == '<Response [404]>':
-		print(f"ERROR: {first_page_string} on league: {league} in year: {year}. Data doesn't exist for this league and season.")
-
+	page, first_page_string = __403_rest(response_string=first_page_string, url=url, url_append='#goalies')
+	if first_page_string == '<Response [404]>': print(f"ERROR: {first_page_string} on league: {league} in year: {year}. Data doesn't exist for this league and season.")
 	else:
 		for i in range(1, 99):
 			page = requests.get(url + str(i), timeout=500)
 			page_string = str(page)
-
-			while page_string == '<Response [403]>':
-				print("Just got a 403 Error within the page. Time to Sleep, then re-obtain the link.")
-				time.sleep(100)
-				page = requests.get(url + str(i), timeout=500)
-				page_string = str(page)
-				print("Changed the string within the page. Let's try again")
-
+			page, page_string = __403_rest(response_string=page_string, pageno=i, url=url)
 			soup = BeautifulSoup(page.content, "html.parser")
-
 			# Get data for players table
 			player_table = soup.find("table", {"class": "table table-striped table-sortable goalie-stats highlight-stats season"})
-
 			try:
 				df_players = tableDataText(player_table)
 			except AttributeError:
@@ -185,45 +154,25 @@ def getgoalies(league, year):
 				if df_players['#'].count() > 0:
 					# Remove empty rows
 					df_players = df_players[df_players['#'] != ''].reset_index(drop=True)
+					href_row = []  # Extract href links in table
+					for link in player_table.find_all('a'): href_row.append(link.attrs['href'])
 
-					# Extract href links in table
-					href_row = []
-					for link in player_table.find_all('a'):
-						href_row.append(link.attrs['href'])
-
-					# Create data frame, rename and only keep links to players
-					df_links = pd.DataFrame(href_row)
+					df_links = pd.DataFrame(href_row)  # Create data frame, rename and only keep links to players
 					df_links.rename(columns={df_links.columns[0]: "link"}, inplace=True)
 					df_links = df_links[df_links['link'].str.contains("/player/")].reset_index(drop=True)
-
-					# Add links to players
-					df_players['link'] = df_links['link']
-
+					df_players['link'] = df_links['link']  # Add links to players
 					players.append(df_players)
-
-			# Wait 3 seconds before going to next
-			# time.sleep(1)
-			# print("Scraped page " + str(i))
-
-			else:
-				# print("Scraped final page of: " + league + " In Year: " + year)
+			else:  # print("Scraped final page of: " + league + " In Year: " + year)
 				break
-
 		if len(players) != 0:
 			df_players = pd.concat(players).reset_index()
-
 			df_players.columns = map(str.lower, df_players.columns)
-
 			# Clean up dataset
 			df_players['season'] = year
 			df_players['league'] = league
-
 			df_players = df_players.drop(['index', '#'], axis=1).reset_index(drop=True)
-
 			print("Successfully scraped all " + league + " goalie data from " + year + ".")
-
 			df_players = df_players.loc[((df_players.gp != 0) & (~pd.isna(df_players.gp)) & (df_players.gp != "0") & (df_players.gaa != "-"))]
-
 			return df_players
 		else: print("LENGTH 0 ERROR: " + str(requests.get(url + str(1), timeout=500)) + " On League: " + league + " In Year: " + year)
 
@@ -236,6 +185,7 @@ def get_info(link):
 	soup = BeautifulSoup(page.content, "html.parser")
 
 	page_string = str(page)
+	# TODO this is different than __403_rest due to "evil" -- can still do it
 	while page_string == '<Response [403]>' or "evil" in str(soup.p):
 		print("403 Error. re-obtaining string and re-trying.")
 		page = requests.get(link, timeout=500)
@@ -246,24 +196,19 @@ def get_info(link):
 	if soup.find("title") != None:  # TODO should be if not soup.find('title')
 		player = soup.find("title").string.replace(" - Elite Prospects", "")
 	else: player = "-"
-
+	# TODO default player, rights, status, etc. to "-" and only override if found
 	if soup.find("div", {"class": "order-11 ep-list__item ep-list__item--in-card-body ep-list__item--is-compact"}) != None:
 		rights = soup.find("div", {"class": "order-11 ep-list__item ep-list__item--in-card-body ep-list__item--is-compact"}
 						   ).find("div", {"class": "col-xs-12 col-18 text-right p-0"}).find("span").string.split("\n")[1].split("/")[0].strip()
 		status = soup.find("div", {"class": "order-11 ep-list__item ep-list__item--in-card-body ep-list__item--is-compact"}
 						   ).find("div", {"class": "col-xs-12 col-18 text-right p-0"}).find("span").string.split("\n")[1].split("/")[1].strip()
-	else:
-		rights = "-"
-		status = "-"
+	else: rights, status = "-", "-"
 
 	if (soup.find("div", {"class": "col-xs-12 col-17 text-right p-0 ep-text-color--black"})) != None:
 		if 'dob' in (soup.find("div", {"class": "col-xs-12 col-17 text-right p-0 ep-text-color--black"})).find("a")['href']:
 			dob = soup.find("div", {"class": "col-xs-12 col-17 text-right p-0 ep-text-color--black"}).find("a")['href'].split("dob=", 1)[1].split("&sort", 1)[0]
-		else:
-			dob = "-"
-
-	else:
-		dob = "-"
+		else: dob = "-"
+	else: dob = "-"
 
 	if soup.find("div", {"class": "order-6 order-sm-3 ep-list__item ep-list__item--col-2 ep-list__item--in-card-body ep-list__item--is-compact"}) != None:
 		if "cm" in soup.find("div", {"class": "order-6 order-sm-3 ep-list__item ep-list__item--col-2 ep-list__item--in-card-body ep-list__item--is-compact"}
@@ -272,11 +217,8 @@ def get_info(link):
 			height = soup.find("div", {"class": "order-6 order-sm-3 ep-list__item ep-list__item--col-2 ep-list__item--in-card-body ep-list__item--is-compact"}
 							   ).find(
 				"div", {"class": "col-xs-12 col-18 text-right p-0 ep-text-color--black"}).string.split(" / ")[1].split("cm")[0].strip()
-		else:
-			height = "-"
-
-	else:
-		height = "-"
+		else: height = "-"
+	else: height = "-"
 
 	if soup.find("div", {"class": "order-7 order-sm-5 ep-list__item ep-list__item--col-2 ep-list__item--in-card-body ep-list__item--is-compact"}) != None:
 		if soup.find("div", {"class": "order-7 order-sm-5 ep-list__item ep-list__item--col-2 ep-list__item--in-card-body ep-list__item--is-compact"}
@@ -299,10 +241,8 @@ def get_info(link):
 								   ).find(
 				"div", {"class": "col-xs-12 col-17 text-right p-0 ep-text-color--black"}).find("a").string.replace("\n", "").strip()
 
-		else:
-			birthplace = "-"
-	else:
-		birthplace = "-"
+		else: birthplace = "-"
+	else: birthplace = "-"
 
 	if soup.find("div", {"class": "order-3 order-sm-6 ep-list__item ep-list__item--col-2 ep-list__item--in-card-body ep-list__item--is-compact"}) != None:
 		if soup.find("div", {"class": "order-3 order-sm-6 ep-list__item ep-list__item--col-2 ep-list__item--in-card-body ep-list__item--is-compact"}
@@ -312,35 +252,27 @@ def get_info(link):
 							   ).find(
 				"div", {"class": "col-xs-12 col-18 text-right p-0 ep-text-color--black"}).find("a").string.replace("\n", "").strip()
 		else: nation = "-"
-
-	else:
-		nation = "-"
+	else: nation = "-"
 
 	if soup.find("div", {"class": "order-8 order-sm-7 ep-list__item ep-list__item--col-2 ep-list__item--in-card-body ep-list__item--is-compact"}) != None:
 		shoots = soup.find("div", {"class": "order-8 order-sm-7 ep-list__item ep-list__item--col-2 ep-list__item--in-card-body ep-list__item--is-compact"}
 						   ).find(
 			"div", {"class": "col-xs-12 col-18 text-right p-0 ep-text-color--black"}).string.replace("\n", "").strip()
 
-	else:
-		shoots = "-"
+	else: shoots = "-"
 
 	if soup.find("div", {"class": "order-12 ep-list__item ep-list__item--in-card-body ep-list__item--is-compact"}) != None:
 		draft = soup.find("div", {"class": "order-12 ep-list__item ep-list__item--in-card-body ep-list__item--is-compact"}
 						  ).find(
 			"div", {"class": "col-xs-12 col-18 text-right p-0"}).find("a").string.replace("\n", "").strip()
-	else:
-		draft = "-"
-
-	# height = np.where(height=="- / -", "-", height)
-
-	# print(player + " scraped!")
-	return (player, rights, status, dob, height, weight, birthplace, nation, shoots, draft, link)
+	else: draft = "-"
+	return player, rights, status, dob, height, weight, birthplace, nation, shoots, draft, link
 
 
 def get_player_information(dataframe):
-	'''
-	Takes a data frame from the get_players or get_goalies function and obtains biographcal information for all players in said dataframe, then returns it as a dataframe.
-	'''
+	"""Takes a data frame from the get_players or get_goalies function and obtains
+	biographical information for all players in said datafram.
+	Returns it as a dataframe."""
 
 	myplayer = []
 	myrights = []
@@ -374,10 +306,12 @@ def get_player_information(dataframe):
 		except KeyboardInterrupt:
 			print("You interrupted this one manually. The output here will be every player you've scraped so far. Good bye!")
 			break
-		except (ConnectionError,
+		except (
+				ConnectionError,
 				HTTPError,
 				ReadTimeout,
-				ConnectTimeout) as errormessage:
+				ConnectTimeout
+		) as errormessage:
 			print("You've been disconnected. Here's the error message:")
 			print(errormessage)
 			print("Luckily, everything you've scraped up to this point will still be safe.")
@@ -398,7 +332,6 @@ def get_player_information(dataframe):
 	resultdf.link = mylink
 
 	print("Your scrape is complete! You've obtained player information for " + str(len(resultdf)) + " players!")
-
 	return resultdf
 
 
@@ -422,12 +355,11 @@ def get_league_skater_boxcars(league, seasons):
 	error = 0
 
 	output = pd.DataFrame()
-
 	if type(seasons) == str:
 		single = getskaters(league, seasons)
 		output = output.append(single)
 		print("Scraping " + league + " data is complete. You scraped skater data from " + seasons + ".")
-		return (output)
+		return output
 
 	elif type(seasons) == tuple or type(seasons) == list:
 		for i in range(0, len(seasons)):
@@ -445,15 +377,12 @@ def get_league_skater_boxcars(league, seasons):
 			) as e:
 				hidden_patrick, error = 5, e
 				return output
-
 		print("Scraping " + league + " data is complete. You scraped skater data from " + scraped_season_list + ".")
 		return output
 
 
 def get_league_goalie_boxcars(league, seasons):
-	"""
-	A function that is built strictly for the back end and should not be run by the user.
-	"""
+	"""A function that is built strictly for the back end and should not be run by the user."""
 
 	if len(set(seasons)) == 1: scraped_season_list = str(seasons)
 	elif len(set(seasons)) > 2:
@@ -790,15 +719,8 @@ def _get_league_standings(league, year):  # TODO complete this
 	teams = []  # Return list with all teams for league-season in link
 	page = requests.get(url + "#standings", timeout=500)
 	first_page_string = str(page)
-	while first_page_string == '<Response [403]>':
-		print("Just got a 403 Error before entering the page. This means EliteProspects has temporarily blocked your IP address.")
-		print("We're going to sleep for 60 seconds, then try again.")
-		time.sleep(100)
-		page = requests.get(url + "#standings", timeout=500)
-		first_page_string = str(page)
-		print("Okay, let's try this again")
-	if first_page_string == '<Response [404]>':
-		print(f"ERROR: {first_page_string} on league: {league} in year: {year}. Data doesn't exist for this league and season.")
+	page, first_page_string = __403_rest(response_string=first_page_string, url=url, url_append='#standings')
+	if first_page_string == '<Response [404]>': print(f"ERROR: {first_page_string} on league: {league} in year: {year}. Data doesn't exist for this league and season.")
 	else:
 		soup = BeautifulSoup(page.content, "html.parser")
 		tbl = soup.find("table", {"class": "table standings table-sortable"})
