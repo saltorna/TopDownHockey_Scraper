@@ -42,13 +42,13 @@ def getskaters(league, year):
 
 	# Return list with all plyers for season in link
 	players = []
-	page = (requests.get(url + str(1), timeout=500))
+	page = requests.get(url + str(1), timeout=500)
 	first_page_string = str(page)
 
 	while first_page_string == '<Response [403]>':
 		print("Just got a 403 Error before entering the page. Time to Sleep, then re-obtain the link.")
 		time.sleep(100)
-		page = (requests.get(url + str(1), timeout=500))
+		page = requests.get(url + str(1), timeout=500)
 		first_page_string = str(page)
 		print("Changed the string before entering the page. Let's try again")
 
@@ -146,13 +146,13 @@ def getgoalies(league, year):
 	url = 'https://www.eliteprospects.com/league/' + league + '/stats/' + year + '?page-goalie='  # Collects data from https://www.eliteprospects.com/league/{league}/stats/{year}
 	print("Beginning scrape of " + league + " goalie data from " + year + ".")
 	players = []  # Return list with all plyers for season in link
-	page = (requests.get(url + str(1) + "#goalies", timeout=500))
+	page = requests.get(url + str(1) + "#goalies", timeout=500)
 	first_page_string = str(page)
 	while first_page_string == '<Response [403]>':
 		print("Just got a 403 Error before entering the page. This means EliteProspects has temporarily blocked your IP address.")
 		print("We're going to sleep for 60 seconds, then try again.")
 		time.sleep(100)
-		page = (requests.get(url + str(1) + "#goalies", timeout=500))
+		page = requests.get(url + str(1) + "#goalies", timeout=500)
 		first_page_string = str(page)
 		print("Okay, let's try this again")
 	if first_page_string == '<Response [404]>':
@@ -166,7 +166,7 @@ def getgoalies(league, year):
 			while page_string == '<Response [403]>':
 				print("Just got a 403 Error within the page. Time to Sleep, then re-obtain the link.")
 				time.sleep(100)
-				page = (requests.get(url + str(i), timeout=500))
+				page = requests.get(url + str(i), timeout=500)
 				page_string = str(page)
 				print("Changed the string within the page. Let's try again")
 
