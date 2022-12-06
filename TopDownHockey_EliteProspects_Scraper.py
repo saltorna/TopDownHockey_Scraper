@@ -46,6 +46,21 @@ def __403_rest(
 	return response_page, response_string
 
 
+def get_season_list(seasons):
+	return ' and '.join(list(sorted(set(seasons))))
+
+
+def get_league_list(leagues):
+	if len(set(leagues)) == 1: league_list = leagues
+	elif len(set(leagues)) > 2:
+		league_list = str(((str(list(set(leagues))).replace("'", "").replace("(", "").replace(")", "").replace("[", "").replace("]", ""))).split(", ")[:-1]).replace("'", "").replace("[", "").replace("]", "") + ", and " + str(
+			((str(list(set(leagues))).replace("'", "").replace("(", "").replace(")", "").replace("[", "").replace("]", ""))).split(", ")[-1])
+	else:
+		league_list = str(((str(list(set(leagues))).replace("'", "").replace("(", "").replace(")", "").replace("[", "").replace("]", ""))).split(", ")[:-1]).replace("'", "").replace("[", "").replace("]", "") + " and " + str(
+			((str(list(set(leagues))).replace("'", "").replace("(", "").replace(")", "").replace("[", "").replace("]", ""))).split(", ")[-1])
+	return league_list
+
+
 def tableDataText(table):
 	"""
 	A function that is built strictly for the back end and should not be run by the user.
@@ -280,10 +295,6 @@ def get_player_information(dataframe):
 	return resultdf
 
 
-def get_season_list(seasons):
-	return ' and '.join(list(sorted(set(seasons))))
-
-
 def get_league_skater_boxcars(league, seasons):
 	"""A function that is built strictly for the back end and should not be run by the user."""  # TODO if this shouldnt be run by the user it should be given private permissions (__)
 	scraped_season_list = get_season_list(seasons)
@@ -372,10 +383,7 @@ def get_goalies(leagues, seasons):
 	if type(leagues) == str and type(seasons) == str:
 		__log_prerun(data_type='goalie', leagues=league_string, seasons=season_string)
 		leaguesall = get_league_goalie_boxcars(leagues, seasons)
-		print("Completed scraping goalie data from the following league:")
-		print(str(leagues))
-		print("Over the following season:")
-		print(str(seasons))
+		__log_scrapecomplete(data_type='goalie', seasons=str(seasons), leagues=str(leagues))
 		return leaguesall.reset_index().drop(columns='index')
 
 	elif type(leagues) == str and (type(seasons) == tuple or type(seasons) == list):
@@ -389,7 +397,7 @@ def get_goalies(leagues, seasons):
 			print(error)
 			return leaguesall.reset_index().drop(columns='index')
 		# TODO all of this is repeated in every func
-		if len(set(leaguesall.league)) == 1:
+		if len(set(leaguesall.league)) == 1:  # TODO get_league_list
 			scraped_league_list = leaguesall.league
 		elif len(set(leaguesall.league)) > 2:
 			scraped_league_list = str(((str(list(set(leaguesall.league))).replace("'", "").replace("(", "").replace(")", "").replace("[", "").replace("]", ""))).split(", ")[:-1]).replace("'", "").replace("[", "").replace("]", "") + ", and " + str(
@@ -398,7 +406,9 @@ def get_goalies(leagues, seasons):
 			scraped_league_list = str(((str(list(set(leaguesall.league))).replace("'", "").replace("(", "").replace(")", "").replace("[", "").replace("]", ""))).split(", ")[:-1]).replace("'", "").replace("[", "").replace("]", "") + " and " + str(
 				((str(list(set(leaguesall.league))).replace("'", "").replace("(", "").replace(")", "").replace("[", "").replace("]", ""))).split(", ")[-1])
 
-		if len(set(seasons)) == 1: scraped_season_list = seasons
+		scraped_league_list2 = get_league_list(leaguesall.league)
+
+		if len(set(seasons)) == 1: scraped_season_list = seasons  # TODO convert with get_season_list
 		elif len(set(seasons)) > 2:
 			scraped_season_list = str(((str(tuple(sorted(tuple(set(seasons))))).replace("'", "").replace("(", "").replace(")", "").replace("[", "").replace("]", ""))).split(", ")[:-1]).replace("'", "").replace("[", "").replace("]",
 																																																								   "") + ", and " + str(
@@ -407,11 +417,7 @@ def get_goalies(leagues, seasons):
 			scraped_season_list = str(((str(tuple(sorted(tuple(set(seasons))))).replace("'", "").replace("(", "").replace(")", "").replace("[", "").replace("]", ""))).split(", ")[:-1]).replace("'", "").replace("[", "").replace("]",
 																																																								   "") + " and " + str(
 				((str(tuple(sorted(tuple(set(seasons))))).replace("'", "").replace("(", "").replace(")", "").replace("[", "").replace("]", ""))).split(", ")[-1])
-
-		print("Completed scraping goalie data from the following league:")
-		print(str(leagues))
-		print("Over the following seasons:")
-		print(scraped_season_list)
+		__log_scrapecomplete(data_type='goalie', seasons=scraped_season_list, leagues=str(leagues))
 		return leaguesall.reset_index().drop(columns='index')
 
 	elif type(seasons) == str and (type(leagues) == tuple or type(leagues) == list):
@@ -430,7 +436,6 @@ def get_goalies(leagues, seasons):
 				print(error)
 				time.sleep(100)
 				continue
-
 		# TODO abstract get_league_list()
 		if len(set(leaguesall.league)) == 1: scraped_league_list = leaguesall.league
 		elif len(set(leaguesall.league)) > 2:
@@ -439,13 +444,8 @@ def get_goalies(leagues, seasons):
 		else:
 			scraped_league_list = str(((str(list(set(leaguesall.league))).replace("'", "").replace("(", "").replace(")", "").replace("[", "").replace("]", ""))).split(", ")[:-1]).replace("'", "").replace("[", "").replace("]", "") + " and " + str(
 				((str(list(set(leaguesall.league))).replace("'", "").replace("(", "").replace(")", "").replace("[", "").replace("]", ""))).split(", ")[-1])
-
-		print("Completed scraping goalie data from the following leagues:")
-		print(scraped_league_list)
-		print("Over the following season:")
-		print(seasons)
+		__log_scrapecomplete(data_type='goalie', seasons=seasons, leagues=scraped_league_list)
 		return leaguesall.reset_index().drop(columns='index')
-
 	elif (type(seasons) == tuple or type(seasons) == list) and (type(leagues) == tuple or type(leagues) == list):
 		__log_prerun(data_type='goalie', leagues=league_string, seasons=season_string)
 		for i in range(0, len(leagues)):
@@ -471,12 +471,8 @@ def get_goalies(leagues, seasons):
 		else:
 			scraped_league_list = str(((str(list(set(leaguesall.league))).replace("'", "").replace("(", "").replace(")", "").replace("[", "").replace("]", ""))).split(", ")[:-1]).replace("'", "").replace("[", "").replace("]", "") + " and " + str(
 				((str(list(set(leaguesall.league))).replace("'", "").replace("(", "").replace(")", "").replace("[", "").replace("]", ""))).split(", ")[-1])
-
 		scraped_season_list = get_season_list(seasons)
-		print("Completed scraping goalie data from the following leagues:")
-		print(scraped_league_list)
-		print("Over the following seasons:")
-		print(scraped_season_list)
+		__log_scrapecomplete(data_type='goalie', seasons=scraped_season_list, leagues=scraped_league_list)
 		return leaguesall.reset_index().drop(columns='index')
 	else:
 		print("There was an issue with the request you made. Please enter a single league and season as a string, or multiple leagues as either a list or tuple.")
