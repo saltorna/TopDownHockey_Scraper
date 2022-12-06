@@ -89,46 +89,33 @@ def getskaters(league, year):
 					# Add links to players
 					df_players['link'] = df_links['link']
 					players.append(df_players)
-			# Wait 3 seconds before going to next
-			# time.sleep(1)
-			# print("Scraped page " + str(i))
-			else:  # print("Scraped final page of: " + league + " In Year: " + year)
+			else:
 				break
-
 		if len(players) != 0:
 			df_players = pd.concat(players).reset_index()
 			df_players.columns = map(str.lower, df_players.columns)
-
 			# Clean up dataset
 			df_players['season'] = year
 			df_players['league'] = league
-
 			df_players = df_players.drop(['index', '#'], axis=1).reset_index(drop=True)
-
 			df_players['playername'] = df_players['player'].str.replace(r"\(.*\)", "")
 			df_players['position'] = df_players['player'].str.extract('.*\((.*)\).*')
 			df_players['position'] = np.where(pd.isna(df_players['position']), "F", df_players['position'])
-
 			df_players['fw_def'] = df_players['position'].str.contains('LW|RW|C|F')
 			df_players.loc[df_players['position'].str.contains('LW|RW|C'), 'fw_def'] = 'FW'
 			df_players.loc[df_players['position'].str.contains('D'), 'fw_def'] = 'DEF'
-
 			# Adjust columns; transform data
 			team = df_players['team'].str.split("“", n=1, expand=True)
 			df_players['team'] = team[0]
-
 			# drop player-column
 			df_players = df_players.drop(columns=['fw_def'], axis=1)
 			print("Successfully scraped all " + league + " skater data from " + year + ".")
-
 			return df_players
 		else: print("LENGTH 0 ERROR: " + str(requests.get(url + str(1), timeout=500)) + " On League: " + league + " In Year: " + year)
 
 
 def getgoalies(league, year):
-	"""
-	A function that is built strictly for the back end and should not be run by the user.
-	"""
+	"""A function that is built strictly for the back end and should not be run by the user."""
 	url = f'https://www.eliteprospects.com/league/{league}/stats/{year}?page-goalie='  # Collects data from https://www.eliteprospects.com/league/{league}/stats/{year}
 	print("Beginning scrape of " + league + " goalie data from " + year + ".")
 	players = []  # Return list with all goalies for season in link
@@ -284,20 +271,22 @@ def get_player_information(dataframe):
 	return resultdf
 
 
+def get_season_list(seasons):  # TODO simplify this this is a nightmare
+	if len(set(seasons)) == 1: szn_list = str(seasons)
+	elif len(set(seasons)) > 2:
+		szn_list = str(((str(tuple(sorted(tuple(set(seasons))))).replace("'", "").replace("(", "").replace(")", "").replace("[", "").replace("]", ""))).split(", ")[:-1]).replace("'", "").replace("[", "").replace("]", "") + ", and " + str(
+			((str(tuple(sorted(tuple(set(seasons))))).replace("'", "").replace("(", "").replace(")", "").replace("[", "").replace("]", ""))).split(", ")[-1])
+	else:
+		szn_list = str(((str(tuple(sorted(tuple(set(seasons))))).replace("'", "").replace("(", "").replace(")", "").replace("[", "").replace("]", ""))).split(", ")[:-1]).replace("'", "").replace("[", "").replace("]", "") + " and " + str(
+			((str(tuple(sorted(tuple(set(seasons))))).replace("'", "").replace("(", "").replace(")", "").replace("[", "").replace("]", ""))).split(", ")[-1])
+	return szn_list
+
+
 def get_league_skater_boxcars(league, seasons):
 	"""
 	A function that is built strictly for the back end and should not be run by the user.
 	"""
-
-	if len(set(seasons)) == 1:
-		scraped_season_list = str(seasons)
-	elif len(set(seasons)) > 2:
-		scraped_season_list = str(((str(tuple(sorted(tuple(set(seasons))))).replace("'", "").replace("(", "").replace(")", "").replace("[", "").replace("]", ""))).split(", ")[:-1]).replace("'", "").replace("[", "").replace("]", "") + ", and " + str(
-			((str(tuple(sorted(tuple(set(seasons))))).replace("'", "").replace("(", "").replace(")", "").replace("[", "").replace("]", ""))).split(", ")[-1])
-	else:
-		scraped_season_list = str(((str(tuple(sorted(tuple(set(seasons))))).replace("'", "").replace("(", "").replace(")", "").replace("[", "").replace("]", ""))).split(", ")[:-1]).replace("'", "").replace("[", "").replace("]", "") + " and " + str(
-			((str(tuple(sorted(tuple(set(seasons))))).replace("'", "").replace("(", "").replace(")", "").replace("[", "").replace("]", ""))).split(", ")[-1])
-
+	scraped_season_list = get_season_list(seasons)
 	global hidden_patrick
 	hidden_patrick = 0
 	global error
@@ -332,15 +321,7 @@ def get_league_skater_boxcars(league, seasons):
 
 def get_league_goalie_boxcars(league, seasons):
 	"""A function that is built strictly for the back end and should not be run by the user."""
-
-	if len(set(seasons)) == 1: scraped_season_list = str(seasons)
-	elif len(set(seasons)) > 2:
-		scraped_season_list = str(((str(tuple(sorted(tuple(set(seasons))))).replace("'", "").replace("(", "").replace(")", "").replace("[", "").replace("]", ""))).split(", ")[:-1]).replace("'", "").replace("[", "").replace("]", "") + ", and " + str(
-			((str(tuple(sorted(tuple(set(seasons))))).replace("'", "").replace("(", "").replace(")", "").replace("[", "").replace("]", ""))).split(", ")[-1])
-	else:
-		scraped_season_list = str(((str(tuple(sorted(tuple(set(seasons))))).replace("'", "").replace("(", "").replace(")", "").replace("[", "").replace("]", ""))).split(", ")[:-1]).replace("'", "").replace("[", "").replace("]", "") + " and " + str(
-			((str(tuple(sorted(tuple(set(seasons))))).replace("'", "").replace("(", "").replace(")", "").replace("[", "").replace("]", ""))).split(", ")[-1])
-
+	scraped_season_list = get_season_list(seasons)
 	global hidden_patrick
 	global error
 	hidden_patrick = 0
@@ -369,7 +350,6 @@ def get_league_goalie_boxcars(league, seasons):
 			) as e:
 				hidden_patrick, error = 5, e
 				return output
-
 		print("Scraping " + league + " data is complete. You scraped goalie data from " + scraped_season_list + ".")
 		return output
 
@@ -418,8 +398,7 @@ def get_goalies(leagues, seasons):
 			scraped_league_list = str(((str(list(set(leaguesall.league))).replace("'", "").replace("(", "").replace(")", "").replace("[", "").replace("]", ""))).split(", ")[:-1]).replace("'", "").replace("[", "").replace("]", "") + " and " + str(
 				((str(list(set(leaguesall.league))).replace("'", "").replace("(", "").replace(")", "").replace("[", "").replace("]", ""))).split(", ")[-1])
 
-		if len(set(seasons)) == 1:
-			scraped_season_list = seasons
+		if len(set(seasons)) == 1: scraped_season_list = seasons
 		elif len(set(seasons)) > 2:
 			scraped_season_list = str(((str(tuple(sorted(tuple(set(seasons))))).replace("'", "").replace("(", "").replace(")", "").replace("[", "").replace("]", ""))).split(", ")[:-1]).replace("'", "").replace("[", "").replace("]",
 																																																								   "") + ", and " + str(
@@ -452,8 +431,8 @@ def get_goalies(leagues, seasons):
 				time.sleep(100)
 				continue
 
-		if len(set(leaguesall.league)) == 1:
-			scraped_league_list = leaguesall.league
+		# TODO abstract get_league_list()
+		if len(set(leaguesall.league)) == 1: scraped_league_list = leaguesall.league
 		elif len(set(leaguesall.league)) > 2:
 			scraped_league_list = str(((str(list(set(leaguesall.league))).replace("'", "").replace("(", "").replace(")", "").replace("[", "").replace("]", ""))).split(", ")[:-1]).replace("'", "").replace("[", "").replace("]", "") + ", and " + str(
 				((str(list(set(leaguesall.league))).replace("'", "").replace("(", "").replace(")", "").replace("[", "").replace("]", ""))).split(", ")[-1])
@@ -484,8 +463,8 @@ def get_goalies(leagues, seasons):
 				time.sleep(100)
 				continue
 
-		if len(set(leaguesall.league)) == 1:
-			scraped_league_list = leaguesall.league
+		# TODO abstract get_league_list()
+		if len(set(leaguesall.league)) == 1: scraped_league_list = leaguesall.league
 		elif len(set(leaguesall.league)) > 2:
 			scraped_league_list = str(((str(list(set(leaguesall.league))).replace("'", "").replace("(", "").replace(")", "").replace("[", "").replace("]", ""))).split(", ")[:-1]).replace("'", "").replace("[", "").replace("]", "") + ", and " + str(
 				((str(list(set(leaguesall.league))).replace("'", "").replace("(", "").replace(")", "").replace("[", "").replace("]", ""))).split(", ")[-1])
@@ -493,17 +472,7 @@ def get_goalies(leagues, seasons):
 			scraped_league_list = str(((str(list(set(leaguesall.league))).replace("'", "").replace("(", "").replace(")", "").replace("[", "").replace("]", ""))).split(", ")[:-1]).replace("'", "").replace("[", "").replace("]", "") + " and " + str(
 				((str(list(set(leaguesall.league))).replace("'", "").replace("(", "").replace(")", "").replace("[", "").replace("]", ""))).split(", ")[-1])
 
-		if len(set(seasons)) == 1:
-			scraped_season_list = seasons
-		elif len(set(seasons)) > 2:
-			scraped_season_list = str(((str(tuple(sorted(tuple(set(seasons))))).replace("'", "").replace("(", "").replace(")", "").replace("[", "").replace("]", ""))).split(", ")[:-1]).replace("'", "").replace("[", "").replace("]",
-																																																								   "") + ", and " + str(
-				((str(tuple(sorted(tuple(set(seasons))))).replace("'", "").replace("(", "").replace(")", "").replace("[", "").replace("]", ""))).split(", ")[-1])
-		else:
-			scraped_season_list = str(((str(tuple(sorted(tuple(set(seasons))))).replace("'", "").replace("(", "").replace(")", "").replace("[", "").replace("]", ""))).split(", ")[:-1]).replace("'", "").replace("[", "").replace("]",
-																																																								   "") + " and " + str(
-				((str(tuple(sorted(tuple(set(seasons))))).replace("'", "").replace("(", "").replace(")", "").replace("[", "").replace("]", ""))).split(", ")[-1])
-
+		scraped_season_list = get_season_list(seasons)
 		print("Completed scraping goalie data from the following leagues:")
 		print(scraped_league_list)
 		print("Over the following seasons:")
@@ -531,12 +500,8 @@ def get_skaters(leagues, seasons):
 	if type(leagues) == str and type(seasons) == str:
 		__log_prerun(data_type='skater', leagues=league_string, seasons=season_string)
 		leaguesall = get_league_skater_boxcars(leagues, seasons)
-		print("Completed scraping skater data from the following league:")
-		print(str(leagues))
-		print("Over the following season:")
-		print(str(seasons))
+		__log_scrapecomplete(datatype='skater', seasons=str(seasons), leagues=str(leagues))  # TODO scraped_season, scraped_leagues
 		return leaguesall.reset_index().drop(columns='index')
-
 	elif type(leagues) == str and (type(seasons) == tuple or type(seasons) == list):
 		__log_prerun(data_type='skater', leagues=league_string, seasons=season_string)
 		leaguesall = get_league_skater_boxcars(leagues, seasons)
@@ -565,10 +530,7 @@ def get_skaters(leagues, seasons):
 																																																								   "") + " and " + str(
 				((str(tuple(sorted(tuple(set(seasons))))).replace("'", "").replace("(", "").replace(")", "").replace("[", "").replace("]", ""))).split(", ")[-1])
 
-		print("Completed scraping skater data from the following league:")
-		print(str(leagues))
-		print("Over the following seasons:")
-		print(scraped_season_list)
+		__log_scrapecomplete(datatype='skater', seasons=scraped_season_list, leagues=str(leagues))
 		return leaguesall.reset_index().drop(columns='index')
 	elif type(seasons) == str and (type(leagues) == tuple or type(leagues) == list):
 		__log_prerun(data_type='skater', leagues=league_string, seasons=season_string)
@@ -594,11 +556,7 @@ def get_skaters(leagues, seasons):
 		else:
 			scraped_league_list = str(((str(list(set(leaguesall.league))).replace("'", "").replace("(", "").replace(")", "").replace("[", "").replace("]", ""))).split(", ")[:-1]).replace("'", "").replace("[", "").replace("]", "") + " and " + str(
 				((str(list(set(leaguesall.league))).replace("'", "").replace("(", "").replace(")", "").replace("[", "").replace("]", ""))).split(", ")[-1])
-
-		print("Completed scraping skater data from the following leagues:")
-		print(scraped_league_list)
-		print("Over the following season:")
-		print(seasons)
+		__log_scrapecomplete(datatype='skater', seasons=seasons, leagues=scraped_league_list)  # TODO seasons?
 		return leaguesall.reset_index().drop(columns='index')
 
 	elif (type(seasons) == tuple or type(seasons) == list) and (type(leagues) == tuple or type(leagues) == list):
@@ -636,10 +594,7 @@ def get_skaters(leagues, seasons):
 																																																								   "") + " and " + str(
 				((str(tuple(sorted(tuple(set(seasons))))).replace("'", "").replace("(", "").replace(")", "").replace("[", "").replace("]", ""))).split(", ")[-1])
 
-		print("Completed scraping skater data from the following leagues:")
-		print(scraped_league_list)
-		print("Incorporating the following seasons:")
-		print(scraped_season_list)
+		__log_scrapecomplete(datatype='skater', seasons=scraped_season_list, leagues=scraped_league_list)
 		return leaguesall.reset_index().drop(columns='index')
 	else:
 		print("There was an issue with the request you made. Please enter a single league and season as a string, or multiple leagues as either a list or tuple.")
@@ -698,13 +653,7 @@ def __get_league_standings_boxcars(league, seasons):
 	A function that is built strictly for the back end and should not be run by the user.
 	"""
 	# TODO again this scraped_season_list is just for logging - can clean this up easy
-	# if len(set(seasons)) == 1: scraped_season_list = str(seasons)
-	# elif len(set(seasons)) > 2:
-	# 	scraped_season_list = str(((str(tuple(sorted(tuple(set(seasons))))).replace("'", "").replace("(", "").replace(")", "").replace("[", "").replace("]", ""))).split(", ")[:-1]).replace("'", "").replace("[", "").replace("]", "") + ", and " + str(
-	# 		((str(tuple(sorted(tuple(set(seasons))))).replace("'", "").replace("(", "").replace(")", "").replace("[", "").replace("]", ""))).split(", ")[-1])
-	# else:
-	# 	scraped_season_list = str(((str(tuple(sorted(tuple(set(seasons))))).replace("'", "").replace("(", "").replace(")", "").replace("[", "").replace("]", ""))).split(", ")[:-1]).replace("'", "").replace("[", "").replace("]", "") + " and " + str(
-	# 		((str(tuple(sorted(tuple(set(seasons))))).replace("'", "").replace("(", "").replace(")", "").replace("[", "").replace("]", ""))).split(", ")[-1])
+	scraped_season_list = get_season_list(seasons)
 	global hidden_patrick
 	global error
 	hidden_patrick, error = 0, 0
@@ -730,8 +679,7 @@ def __get_league_standings_boxcars(league, seasons):
 			) as e:
 				hidden_patrick, error = 5, e
 				return output
-		# TODO fix
-		# print("Scraping " + league + " data is complete. You scraped goalie data from " + scraped_season_list + ".")
+		print("Scraping " + league + " data is complete. You scraped goalie data from " + scraped_season_list + ".")
 		return output
 
 
@@ -759,10 +707,7 @@ def get_league_standings(leagues: List[str], seasons: List[int]) -> pd.DataFrame
 	if type(leagues) == str and type(seasons) == str:
 		# __log_prerun(data_type='league standings', leagues=league_string, seasons=season_string)
 		leaguesall = __get_league_standings_boxcars(leagues, seasons)  # TODO this should be a new get_league_standings_boxcars
-		print("Completed scraping league standings data from the following league:")
-		print(str(leagues))
-		print("Over the following season:")
-		print(str(seasons))
+		__log_scrapecomplete(datatype='league-standings', seasons=str(seasons), leagues=str(leagues))  # TODO leagues, seasons
 		return leaguesall.reset_index().drop(columns='index')
 	elif type(leagues) == str and (type(seasons) == tuple or type(seasons) == list):
 		# __log_prerun(data_type='league standings', leagues=league_string, seasons=season_string)
@@ -784,20 +729,8 @@ def get_league_standings(leagues: List[str], seasons: List[int]) -> pd.DataFrame
 		# 	scraped_league_list = str(((str(list(set(leaguesall.league))).replace("'", "").replace("(", "").replace(")", "").replace("[", "").replace("]", ""))).split(", ")[:-1]).replace("'", "").replace("[", "").replace("]", "") + " and " + str(
 		# 		((str(list(set(leaguesall.league))).replace("'", "").replace("(", "").replace(")", "").replace("[", "").replace("]", ""))).split(", ")[-1])
 		#
-		# if len(set(seasons)) == 1: scraped_season_list = seasons
-		# elif len(set(seasons)) > 2:
-		# 	scraped_season_list = str(((str(tuple(sorted(tuple(set(seasons))))).replace("'", "").replace("(", "").replace(")", "").replace("[", "").replace("]", ""))).split(", ")[:-1]).replace("'", "").replace("[", "").replace("]",
-		# 																																																						   "") + ", and " + str(
-		# 		((str(tuple(sorted(tuple(set(seasons))))).replace("'", "").replace("(", "").replace(")", "").replace("[", "").replace("]", ""))).split(", ")[-1])
-		# else:
-		# 	scraped_season_list = str(((str(tuple(sorted(tuple(set(seasons))))).replace("'", "").replace("(", "").replace(")", "").replace("[", "").replace("]", ""))).split(", ")[:-1]).replace("'", "").replace("[", "").replace("]",
-		# 																																																						   "") + " and " + str(
-		# 		((str(tuple(sorted(tuple(set(seasons))))).replace("'", "").replace("(", "").replace(")", "").replace("[", "").replace("]", ""))).split(", ")[-1])
-
-		print("Completed scraping league-standings data from the following league:")
-		# print(str(leagues))
-		print("Over the following seasons:")
-		# print(scraped_season_list)
+		scraped_season_list = get_season_list(seasons)
+		__log_scrapecomplete(datatype='league-standings', seasons=scraped_season_list, leagues=str(leagues))  # TODO leagues
 		return leaguesall.reset_index().drop(columns='index')
 	elif type(seasons) == str and (type(leagues) == tuple or type(leagues) == list):
 		# __log_prerun(data_type='league standings', leagues=league_string, seasons=season_string)
@@ -825,12 +758,8 @@ def get_league_standings(leagues: List[str], seasons: List[int]) -> pd.DataFrame
 		# 	scraped_league_list = str(((str(list(set(leaguesall.league))).replace("'", "").replace("(", "").replace(")", "").replace("[", "").replace("]", ""))).split(", ")[:-1]).replace("'", "").replace("[", "").replace("]", "") + " and " + str(
 		# 		((str(list(set(leaguesall.league))).replace("'", "").replace("(", "").replace(")", "").replace("[", "").replace("]", ""))).split(", ")[-1])
 
-		print("Completed scraping league standings data from the following leagues:")
-		# print(scraped_league_list)
-		print("Over the following season:")
-		# print(seasons)
+		__log_scrapecomplete(datatype='league-standings', seasons=seasons, leagues='')  # TODO leagues, scraped_season_list?
 		return leaguesall.reset_index().drop(columns='index')
-
 	elif (type(seasons) == tuple or type(seasons) == list) and (type(leagues) == tuple or type(leagues) == list):
 		# __log_prerun(data_type='league standings', leagues=league_string, seasons=season_string)
 		for i in range(0, len(leagues)):
@@ -857,23 +786,17 @@ def get_league_standings(leagues: List[str], seasons: List[int]) -> pd.DataFrame
 		# 	scraped_league_list = str(((str(list(set(leaguesall.league))).replace("'", "").replace("(", "").replace(")", "").replace("[", "").replace("]", ""))).split(", ")[:-1]).replace("'", "").replace("[", "").replace("]", "") + " and " + str(
 		# 		((str(list(set(leaguesall.league))).replace("'", "").replace("(", "").replace(")", "").replace("[", "").replace("]", ""))).split(", ")[-1])
 		#
-		# if len(set(seasons)) == 1:
-		# 	scraped_season_list = seasons
+		scraped_season_list = get_season_list(seasons)
+		# if len(set(seasons)) == 1: scraped_season_list = seasons
 		# elif len(set(seasons)) > 2:
-		# 	scraped_season_list = str(((str(tuple(sorted(tuple(set(seasons))))).replace("'", "").replace("(", "").replace(")", "").replace("[", "").replace("]", ""))).split(", ")[:-1]).replace("'", "").replace("[", "").replace("]",
-		# 																																																						   "") + ", and " + str(
+		# 	scraped_season_list = str(((str(tuple(sorted(tuple(set(seasons))))).replace("'", "").replace("(", "").replace(")", "").replace("[", "").replace("]", ""))).split(", ")[:-1]).replace("'", "").replace("[", "").replace("]", "") + ", and " + str(
 		# 		((str(tuple(sorted(tuple(set(seasons))))).replace("'", "").replace("(", "").replace(")", "").replace("[", "").replace("]", ""))).split(", ")[-1])
 		# else:
-		# 	scraped_season_list = str(((str(tuple(sorted(tuple(set(seasons))))).replace("'", "").replace("(", "").replace(")", "").replace("[", "").replace("]", ""))).split(", ")[:-1]).replace("'", "").replace("[", "").replace("]",
-		# 																																																						   "") + " and " + str(
+		# 	scraped_season_list = str(((str(tuple(sorted(tuple(set(seasons))))).replace("'", "").replace("(", "").replace(")", "").replace("[", "").replace("]", ""))).split(", ")[:-1]).replace("'", "").replace("[", "").replace("]", "") + " and " + str(
 		# 		((str(tuple(sorted(tuple(set(seasons))))).replace("'", "").replace("(", "").replace(")", "").replace("[", "").replace("]", ""))).split(", ")[-1])
 
-		print("Completed scraping goalie data from the following leagues:")
-		# print(scraped_league_list)
-		print("Over the following seasons:")
-		# print(scraped_season_list)
+		__log_scrapecomplete(datatype='league-standings', seasons=scraped_season_list, leagues='')  # TODO leagues
 		return leaguesall.reset_index().drop(columns='index')
-
 	else:
 		print("There was an issue with the request you made. Please enter a single league and season as a string, or multiple leagues as either a list or tuple.")
 
@@ -889,10 +812,16 @@ def __log_prerun(
 	:param leagues: str - string representing leagues to be being scraped
 	:param seasons: str - string representing seasons to be scraped
 	"""
-	print(f"Your scrape request is {data_type} data from the following leagues:")
-	print(leagues)
-	print("In the following seasons:")
-	print(seasons)
+	print(f"Your scrape request is {data_type} data from the following leagues:\n\t{leagues}\nIn the following seasons:\n\t{seasons}")
+	pass
+
+
+def __log_scrapecomplete(
+		data_type: str,
+		seasons: str,
+		leagues: str
+):
+	print(f'Completed scraping {data_type} data from the following leagues:\n\t{leagues}\nOver the following seasons:\n\t{seasons}')
 	pass
 
 
