@@ -46,19 +46,15 @@ def __403_rest(
 	return response_page, response_string
 
 
-def get_season_list(seasons):
-	return ' and '.join(list(sorted(set(seasons))))
-
-
-def get_league_list(leagues):
-	if len(set(leagues)) == 1: league_list = leagues
-	elif len(set(leagues)) > 2:
-		league_list = str(((str(list(set(leagues))).replace("'", "").replace("(", "").replace(")", "").replace("[", "").replace("]", ""))).split(", ")[:-1]).replace("'", "").replace("[", "").replace("]", "") + ", and " + str(
-			((str(list(set(leagues))).replace("'", "").replace("(", "").replace(")", "").replace("[", "").replace("]", ""))).split(", ")[-1])
-	else:
-		league_list = str(((str(list(set(leagues))).replace("'", "").replace("(", "").replace(")", "").replace("[", "").replace("]", ""))).split(", ")[:-1]).replace("'", "").replace("[", "").replace("]", "") + " and " + str(
-			((str(list(set(leagues))).replace("'", "").replace("(", "").replace(")", "").replace("[", "").replace("]", ""))).split(", ")[-1])
-	return league_list
+def get_concat_liststr(seasons):
+	"""Converts season(s) into string like '2021-22' or '2021-22 and 2022-23' or '2021-22, 2022-23 and 2023-24'"""
+	if type(seasons) == str or type(seasons) == int: return str(seasons)
+	season_str = ', '.join(list(sorted(map(lambda x: str(x), set(seasons)))))
+	replacement = ', '
+	pos = season_str.rfind(replacement)
+	if pos > -1: season_str = season_str[:pos] + ' and ' + season_str[pos + len(replacement):]
+	return season_str
+	return ' and '.join(list(sorted(map(lambda x: str(x), set(seasons)))))
 
 
 def tableDataText(table):
@@ -297,7 +293,7 @@ def get_player_information(dataframe):
 
 def get_league_skater_boxcars(league, seasons):
 	"""A function that is built strictly for the back end and should not be run by the user."""  # TODO if this shouldnt be run by the user it should be given private permissions (__)
-	scraped_season_list = get_season_list(seasons)
+	scraped_season_list = get_concat_liststr(seasons)
 	global hidden_patrick
 	hidden_patrick = 0
 	global error
@@ -332,7 +328,7 @@ def get_league_skater_boxcars(league, seasons):
 
 def get_league_goalie_boxcars(league, seasons):
 	"""A function that is built strictly for the back end and should not be run by the user."""  # TODO if this shouldnt be run by the user it should be given private permissions (__)
-	scraped_season_list = get_season_list(seasons)
+	scraped_season_list = get_concat_liststr(seasons)
 	global hidden_patrick
 	global error
 	hidden_patrick = 0
@@ -406,7 +402,7 @@ def get_goalies(leagues, seasons):
 			scraped_league_list = str(((str(list(set(leaguesall.league))).replace("'", "").replace("(", "").replace(")", "").replace("[", "").replace("]", ""))).split(", ")[:-1]).replace("'", "").replace("[", "").replace("]", "") + " and " + str(
 				((str(list(set(leaguesall.league))).replace("'", "").replace("(", "").replace(")", "").replace("[", "").replace("]", ""))).split(", ")[-1])
 
-		scraped_league_list2 = get_league_list(leaguesall.league)
+		scraped_league_list2 = get_concat_liststr(leaguesall.league)
 
 		if len(set(seasons)) == 1: scraped_season_list = seasons  # TODO convert with get_season_list
 		elif len(set(seasons)) > 2:
@@ -471,7 +467,7 @@ def get_goalies(leagues, seasons):
 		else:
 			scraped_league_list = str(((str(list(set(leaguesall.league))).replace("'", "").replace("(", "").replace(")", "").replace("[", "").replace("]", ""))).split(", ")[:-1]).replace("'", "").replace("[", "").replace("]", "") + " and " + str(
 				((str(list(set(leaguesall.league))).replace("'", "").replace("(", "").replace(")", "").replace("[", "").replace("]", ""))).split(", ")[-1])
-		scraped_season_list = get_season_list(seasons)
+		scraped_season_list = get_concat_liststr(seasons)
 		__log_scrapecomplete(data_type='goalie', seasons=scraped_season_list, leagues=scraped_league_list)
 		return leaguesall.reset_index().drop(columns='index')
 	else:
@@ -579,7 +575,7 @@ def get_skaters(leagues, seasons):
 		else:
 			scraped_league_list = str(((str(list(set(leaguesall.league))).replace("'", "").replace("(", "").replace(")", "").replace("[", "").replace("]", ""))).split(", ")[:-1]).replace("'", "").replace("[", "").replace("]", "") + " and " + str(
 				((str(list(set(leaguesall.league))).replace("'", "").replace("(", "").replace(")", "").replace("[", "").replace("]", ""))).split(", ")[-1])
-		scraped_season_list = get_season_list(seasons)
+		scraped_season_list = get_concat_liststr(seasons)
 		__log_scrapecomplete(datatype='skater', seasons=scraped_season_list, leagues=scraped_league_list)
 		return leaguesall.reset_index().drop(columns='index')
 	else:
@@ -634,7 +630,7 @@ def _get_league_standings(league, year):  # TODO complete this
 
 def __get_league_standings_boxcars(league, seasons):
 	"""A function that is built strictly for the back end and should not be run by the user."""  # TODO if this shouldnt be run by users then it should get private permissions (__)
-	scraped_season_list = get_season_list(seasons)
+	scraped_season_list = get_concat_liststr(seasons)
 	global hidden_patrick
 	global error
 	hidden_patrick, error = 0, 0
@@ -710,7 +706,7 @@ def get_league_standings(leagues: List[str], seasons: List[int]) -> pd.DataFrame
 		# 	scraped_league_list = str(((str(list(set(leaguesall.league))).replace("'", "").replace("(", "").replace(")", "").replace("[", "").replace("]", ""))).split(", ")[:-1]).replace("'", "").replace("[", "").replace("]", "") + " and " + str(
 		# 		((str(list(set(leaguesall.league))).replace("'", "").replace("(", "").replace(")", "").replace("[", "").replace("]", ""))).split(", ")[-1])
 		#
-		scraped_season_list = get_season_list(seasons)
+		scraped_season_list = get_concat_liststr(seasons)
 		__log_scrapecomplete(datatype='league-standings', seasons=scraped_season_list, leagues=str(leagues))  # TODO leagues
 		return leaguesall.reset_index().drop(columns='index')
 	elif type(seasons) == str and (type(leagues) == tuple or type(leagues) == list):
@@ -767,7 +763,7 @@ def get_league_standings(leagues: List[str], seasons: List[int]) -> pd.DataFrame
 		# 	scraped_league_list = str(((str(list(set(leaguesall.league))).replace("'", "").replace("(", "").replace(")", "").replace("[", "").replace("]", ""))).split(", ")[:-1]).replace("'", "").replace("[", "").replace("]", "") + " and " + str(
 		# 		((str(list(set(leaguesall.league))).replace("'", "").replace("(", "").replace(")", "").replace("[", "").replace("]", ""))).split(", ")[-1])
 		#
-		scraped_season_list = get_season_list(seasons)
+		scraped_season_list = get_concat_liststr(seasons)
 		__log_scrapecomplete(datatype='league-standings', seasons=scraped_season_list, leagues='')  # TODO leagues
 		return leaguesall.reset_index().drop(columns='index')
 	else:
