@@ -15,6 +15,18 @@ from requests import ConnectionError, ReadTimeout, ConnectTimeout, HTTPError, Ti
 from typing import List
 
 
+def __log_prerun(data_type: str = '', leagues: str = '', seasons: str = ''):
+	"""This is an abstracted logging method used before each data_type is being scraped for a league/season combo"""
+	print(f"Your scrape request is {data_type} data from the following leagues:\n\t{leagues}\nIn the following seasons:\n\t{seasons}")
+	pass
+
+
+def __log_scrapecomplete(data_type: str, seasons: str, leagues: str):
+	"""This is an abstracted logging method that is used sporadically throughout each scraping method"""
+	print(f'Completed scraping {data_type} data from the following leagues:\n\t{leagues}\nOver the following seasons:\n\t{seasons}')
+	pass
+
+
 def __403_rest(
 		response_string: str,
 		url: str,
@@ -23,6 +35,7 @@ def __403_rest(
 		timeout: int = 500,
 		pageno: int = 1
 ):
+	"""This is an abstracted method which tries to run the scrape with timeout/sleeps in case a 403 is returned (temporary block from EP)"""
 	while response_string == '<Response [403]>':
 		print("Just got a 403 Error before entering the page. This means EliteProspects has temporarily blocked your IP address.")
 		print(f"We're going to sleep for {sleep} seconds, then try again.")
@@ -51,9 +64,7 @@ def tableDataText(table):
 
 
 def getskaters(league, year):
-	"""
-	A function that is built strictly for the back end and should not be run by the user.
-	"""
+	"""A function that is built strictly for the back end and should not be run by the user."""  # TODO if this shouldnt be run by users then it should get private permissions (__)
 	url = f'https://www.eliteprospects.com/league/{league}/stats/{year}?page='  # Collects data from https://www.eliteprospects.com/league/{league}/stats/{year}
 	print("Beginning scrape of " + league + " skater data from " + year + ".")
 	players = []  # Return list with all players for season in link
@@ -115,7 +126,7 @@ def getskaters(league, year):
 
 
 def getgoalies(league, year):
-	"""A function that is built strictly for the back end and should not be run by the user."""
+	"""A function that is built strictly for the back end and should not be run by the user."""  # TODO if this shouldnt be run by users then it should get private permissions (__)
 	url = f'https://www.eliteprospects.com/league/{league}/stats/{year}?page-goalie='  # Collects data from https://www.eliteprospects.com/league/{league}/stats/{year}
 	print("Beginning scrape of " + league + " goalie data from " + year + ".")
 	players = []  # Return list with all goalies for season in link
@@ -165,9 +176,7 @@ def getgoalies(league, year):
 
 
 def get_info(link):
-	"""
-	A function that is built strictly for the back end and should not be run by the user.
-	"""
+	"""A function that is built strictly for the back end and should not be run by the user."""  # TODO if it shouldnt be run by user it should be given private permissions (__)
 	page = requests.get(link, timeout=500)
 	soup = BeautifulSoup(page.content, "html.parser")
 	page_string = str(page)
@@ -271,21 +280,12 @@ def get_player_information(dataframe):
 	return resultdf
 
 
-def get_season_list(seasons):  # TODO simplify this this is a nightmare
-	if len(set(seasons)) == 1: szn_list = str(seasons)
-	elif len(set(seasons)) > 2:
-		szn_list = str(((str(tuple(sorted(tuple(set(seasons))))).replace("'", "").replace("(", "").replace(")", "").replace("[", "").replace("]", ""))).split(", ")[:-1]).replace("'", "").replace("[", "").replace("]", "") + ", and " + str(
-			((str(tuple(sorted(tuple(set(seasons))))).replace("'", "").replace("(", "").replace(")", "").replace("[", "").replace("]", ""))).split(", ")[-1])
-	else:
-		szn_list = str(((str(tuple(sorted(tuple(set(seasons))))).replace("'", "").replace("(", "").replace(")", "").replace("[", "").replace("]", ""))).split(", ")[:-1]).replace("'", "").replace("[", "").replace("]", "") + " and " + str(
-			((str(tuple(sorted(tuple(set(seasons))))).replace("'", "").replace("(", "").replace(")", "").replace("[", "").replace("]", ""))).split(", ")[-1])
-	return szn_list
+def get_season_list(seasons):
+	return ' and '.join(list(sorted(set(seasons))))
 
 
 def get_league_skater_boxcars(league, seasons):
-	"""
-	A function that is built strictly for the back end and should not be run by the user.
-	"""
+	"""A function that is built strictly for the back end and should not be run by the user."""  # TODO if this shouldnt be run by the user it should be given private permissions (__)
 	scraped_season_list = get_season_list(seasons)
 	global hidden_patrick
 	hidden_patrick = 0
@@ -320,7 +320,7 @@ def get_league_skater_boxcars(league, seasons):
 
 
 def get_league_goalie_boxcars(league, seasons):
-	"""A function that is built strictly for the back end and should not be run by the user."""
+	"""A function that is built strictly for the back end and should not be run by the user."""  # TODO if this shouldnt be run by the user it should be given private permissions (__)
 	scraped_season_list = get_season_list(seasons)
 	global hidden_patrick
 	global error
@@ -360,13 +360,13 @@ def get_goalies(leagues, seasons):
 	elif len(seasons) == 2:
 		season_string = " and".join(str((tuple(sorted(tuple(seasons))))).replace("'", "").replace("(", "").replace(")", "").split(","))
 	else:
-		season_string = str(((tuple(sorted(tuple(seasons)))))[:-1]).replace("'", "").replace("(", "").replace(")", "") + " and " + str(((tuple(sorted(tuple(seasons)))))[-1])
+		season_string = str((tuple(sorted(tuple(seasons))))[:-1]).replace("'", "").replace("(", "").replace(")", "") + " and " + str((tuple(sorted(tuple(seasons))))[-1])
 
 	if len(leagues) == 1 or type(leagues) == str: league_string = str(leagues)
 	elif len(leagues) == 2:
 		league_string = " and".join(str((tuple(sorted(tuple(leagues))))).replace("'", "").replace("(", "").replace(")", "").split(","))
 	else:
-		league_string = str(((tuple(sorted(tuple(leagues)))))[:-1]).replace("'", "").replace("(", "").replace(")", "") + " and " + str(((tuple(sorted(tuple(leagues)))))[-1])
+		league_string = str((tuple(sorted(tuple(leagues))))[:-1]).replace("'", "").replace("(", "").replace(")", "") + " and " + str((tuple(sorted(tuple(leagues))))[-1])
 
 	leaguesall = pd.DataFrame()
 	if type(leagues) == str and type(seasons) == str:
@@ -583,17 +583,7 @@ def get_skaters(leagues, seasons):
 		else:
 			scraped_league_list = str(((str(list(set(leaguesall.league))).replace("'", "").replace("(", "").replace(")", "").replace("[", "").replace("]", ""))).split(", ")[:-1]).replace("'", "").replace("[", "").replace("]", "") + " and " + str(
 				((str(list(set(leaguesall.league))).replace("'", "").replace("(", "").replace(")", "").replace("[", "").replace("]", ""))).split(", ")[-1])
-
-		if len(set(seasons)) == 1: scraped_season_list = seasons
-		elif len(set(seasons)) > 2:
-			scraped_season_list = str(((str(tuple(sorted(tuple(set(seasons))))).replace("'", "").replace("(", "").replace(")", "").replace("[", "").replace("]", ""))).split(", ")[:-1]).replace("'", "").replace("[", "").replace("]",
-																																																								   "") + ", and " + str(
-				((str(tuple(sorted(tuple(set(seasons))))).replace("'", "").replace("(", "").replace(")", "").replace("[", "").replace("]", ""))).split(", ")[-1])
-		else:
-			scraped_season_list = str(((str(tuple(sorted(tuple(set(seasons))))).replace("'", "").replace("(", "").replace(")", "").replace("[", "").replace("]", ""))).split(", ")[:-1]).replace("'", "").replace("[", "").replace("]",
-																																																								   "") + " and " + str(
-				((str(tuple(sorted(tuple(set(seasons))))).replace("'", "").replace("(", "").replace(")", "").replace("[", "").replace("]", ""))).split(", ")[-1])
-
+		scraped_season_list = get_season_list(seasons)
 		__log_scrapecomplete(datatype='skater', seasons=scraped_season_list, leagues=scraped_league_list)
 		return leaguesall.reset_index().drop(columns='index')
 	else:
@@ -614,9 +604,7 @@ def add_player_information(dataframe):
 
 
 def _get_league_standings(league, year):  # TODO complete this
-	"""
-	A function that is built strictly for the back end and should not be run by the user.
-	"""
+	"""A function that is built strictly for the back end and should not be run by the user."""  # TODO if this shouldnt be run by users then it should get private permissions (__)
 	# todo convert 2022 -> 2021-2022
 	url = f'https://www.eliteprospects.com/league/{league}/{year}'  # ex: https://www.eliteprospects.com/league/nhl/2021-2022
 	print("Beginning scrape of " + league + " league standings data from " + year + ".")
@@ -649,10 +637,7 @@ def _get_league_standings(league, year):  # TODO complete this
 
 
 def __get_league_standings_boxcars(league, seasons):
-	"""
-	A function that is built strictly for the back end and should not be run by the user.
-	"""
-	# TODO again this scraped_season_list is just for logging - can clean this up easy
+	"""A function that is built strictly for the back end and should not be run by the user."""  # TODO if this shouldnt be run by users then it should get private permissions (__)
 	scraped_season_list = get_season_list(seasons)
 	global hidden_patrick
 	global error
@@ -787,42 +772,10 @@ def get_league_standings(leagues: List[str], seasons: List[int]) -> pd.DataFrame
 		# 		((str(list(set(leaguesall.league))).replace("'", "").replace("(", "").replace(")", "").replace("[", "").replace("]", ""))).split(", ")[-1])
 		#
 		scraped_season_list = get_season_list(seasons)
-		# if len(set(seasons)) == 1: scraped_season_list = seasons
-		# elif len(set(seasons)) > 2:
-		# 	scraped_season_list = str(((str(tuple(sorted(tuple(set(seasons))))).replace("'", "").replace("(", "").replace(")", "").replace("[", "").replace("]", ""))).split(", ")[:-1]).replace("'", "").replace("[", "").replace("]", "") + ", and " + str(
-		# 		((str(tuple(sorted(tuple(set(seasons))))).replace("'", "").replace("(", "").replace(")", "").replace("[", "").replace("]", ""))).split(", ")[-1])
-		# else:
-		# 	scraped_season_list = str(((str(tuple(sorted(tuple(set(seasons))))).replace("'", "").replace("(", "").replace(")", "").replace("[", "").replace("]", ""))).split(", ")[:-1]).replace("'", "").replace("[", "").replace("]", "") + " and " + str(
-		# 		((str(tuple(sorted(tuple(set(seasons))))).replace("'", "").replace("(", "").replace(")", "").replace("[", "").replace("]", ""))).split(", ")[-1])
-
 		__log_scrapecomplete(datatype='league-standings', seasons=scraped_season_list, leagues='')  # TODO leagues
 		return leaguesall.reset_index().drop(columns='index')
 	else:
 		print("There was an issue with the request you made. Please enter a single league and season as a string, or multiple leagues as either a list or tuple.")
-
-
-def __log_prerun(
-		data_type: str = '',
-		leagues: str = '',
-		seasons: str = ''
-):
-	"""Quick utility function that prints out the generic logging before each data_type is being scraped for a league/season combo
-
-	:param data_type: str - data that is being scraped (ie. goalies, players, etc)
-	:param leagues: str - string representing leagues to be being scraped
-	:param seasons: str - string representing seasons to be scraped
-	"""
-	print(f"Your scrape request is {data_type} data from the following leagues:\n\t{leagues}\nIn the following seasons:\n\t{seasons}")
-	pass
-
-
-def __log_scrapecomplete(
-		data_type: str,
-		seasons: str,
-		leagues: str
-):
-	print(f'Completed scraping {data_type} data from the following leagues:\n\t{leagues}\nOver the following seasons:\n\t{seasons}')
-	pass
 
 
 ### EXAMPLE ONE: GET ALL SKATERS FROM THE MHL IN 2020-2021 ###
